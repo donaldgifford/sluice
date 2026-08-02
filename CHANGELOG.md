@@ -5,6 +5,10 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 ## [unreleased]
 
+### Features
+
+- *(config)* Add manifest model and curated platform matrix
+
 ### Documentation
 
 - Green the markdown lint baseline

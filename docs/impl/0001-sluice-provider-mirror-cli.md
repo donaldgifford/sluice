@@ -93,7 +93,7 @@ into.
 
 - [x] Add `hclkit` v0.1.0 and `cobra` — the first entries in `go.mod`
       (`go mod tidy`).
-- [ ] `internal/config` schema types: `mirror` block (`bucket`, `region`,
+- [x] `internal/config` schema types: `mirror` block (`bucket`, `region`,
       `platforms`) and `provider` blocks (label = full source address,
       `versions`, optional `platforms` override).
 - [ ] Loader: `--config-dir` via hclkit `LoadDir` with `MergeAppend` (top-level
