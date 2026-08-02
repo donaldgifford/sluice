@@ -9,6 +9,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 - *(config)* Add manifest model and curated platform matrix
 - *(config)* Add HCL loader with merged-body semantics
+- *(config)* Reject duplicate provider labels across merged files
 
 ### Documentation
 

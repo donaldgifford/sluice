@@ -56,7 +56,18 @@ func buildManifest(raw *manifestHCL) (*Manifest, error) {
 	mirror := buildMirror(raw.Mirror, &is)
 
 	providers := make([]Provider, 0, len(raw.Providers))
+	seen := make(map[string]struct{}, len(raw.Providers))
 	for _, p := range raw.Providers {
+		// MergeAppend erases file boundaries, so a label declared in
+		// two files arrives here as two blocks. The label is the
+		// identity; a repeat is always an error.
+		if _, dup := seen[p.Source]; dup {
+			is.add(`provider "`+p.Source+`"`,
+				"declared more than once across the config; merge is explicit, "+
+					"never a silent union — consolidate into one block")
+			continue
+		}
+		seen[p.Source] = struct{}{}
 		providers = append(providers, buildProvider(p, mirror.Platforms, &is))
 	}
 

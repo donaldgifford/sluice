@@ -100,7 +100,7 @@ into.
       `*.hcl` merged as HCL bodies; an empty directory errors for free) and
       `--config-file` via `LoadFile`; the two flags mutually exclusive with a
       clear usage error.
-- [ ] Merge semantics: duplicate provider labels across files are an error —
+- [x] Merge semantics: duplicate provider labels across files are an error —
       merge is explicit, never a silent union.
 - [ ] Validation rules, each with a targeted error message:
   - [ ] exactly one `mirror` block across all files;

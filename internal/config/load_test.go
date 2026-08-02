@@ -76,9 +76,10 @@ func TestLoadDiagnostics(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		src  string
-		want []string // substrings that must appear in Error()
+		name     string
+		filename string // defaults to test.hcl
+		src      string
+		want     []string // substrings that must appear in Error()
 	}{
 		{
 			name: "missing mirror block",
@@ -145,12 +146,13 @@ provider "registry.terraform.io/hashicorp/aws" {
 			want: []string{"Missing required argument", `"versions"`},
 		},
 		{
-			name: "syntax error carries position",
+			name:     "syntax error carries position and filename",
+			filename: "broken.hcl",
 			src: `mirror {
   bucket =
 }
 `,
-			want: []string{"test.hcl:"},
+			want: []string{"broken.hcl:"},
 		},
 	}
 
@@ -158,7 +160,11 @@ provider "registry.terraform.io/hashicorp/aws" {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := loadBytes("test.hcl", []byte(tt.src))
+			filename := tt.filename
+			if filename == "" {
+				filename = "test.hcl"
+			}
+			_, err := loadBytes(filename, []byte(tt.src))
 			if err == nil {
 				t.Fatal("expected an error, got none")
 			}
