@@ -21,6 +21,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(registry)* Client scaffolding and download metadata resolution
 - *(registry)* GPG verification of SHA256SUMS and strict sums parsing
 - *(registry)* Streamed size-bounded zip download with SHA-256 verify
+- *(registry)* Bounded retry with backoff and clean cancellation
 
 ### Refactor
 

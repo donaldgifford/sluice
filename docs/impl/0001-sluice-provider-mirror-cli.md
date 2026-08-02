@@ -182,7 +182,7 @@ tampered-fixture suite is the proof it fails closed.
       registry-published keys (`ProtonMail/go-crypto` openpgp).
 - [x] Zip download (streamed to a temp file, size-bounded, context-aware) and
       SHA-256 verification against the signed sums entry.
-- [ ] Retry with backoff on registry calls; clean context cancellation.
+- [x] Retry with backoff on registry calls; clean context cancellation.
 - [x] `internal/hash`: `h1:` via `dirhash.HashZip`
       (`golang.org/x/mod/sumdb/dirhash`); golden tests whose expected values are
       cross-checked against real `.terraform.lock.hcl` entries for the fixture

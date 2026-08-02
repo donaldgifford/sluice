@@ -14,6 +14,23 @@ import (
 	"os"
 )
 
+// fetchZipRetry runs fetchZip as one retried unit: each attempt gets
+// a fresh temp file and a fresh hasher, so a partial stream never
+// contaminates the next attempt. A checksum mismatch is not
+// retryable — verified bytes are never refetched and re-trusted.
+func (c *Client) fetchZipRetry(ctx context.Context, urlStr, wantHex, destDir, filename string) (string, error) {
+	var path string
+	err := withRetry(ctx, func() error {
+		p, err := c.fetchZip(ctx, urlStr, wantHex, destDir, filename)
+		if err != nil {
+			return err
+		}
+		path = p
+		return nil
+	})
+	return path, err
+}
+
 // fetchZip streams the zip at urlStr into a temp file inside destDir,
 // enforcing the size bound and verifying the SHA-256 computed during
 // the stream against wantHex — the entry from the GPG-verified sums.

@@ -54,7 +54,7 @@ func (c *Client) downloadMeta(ctx context.Context, addr providerAddr, version st
 		return nil, err
 	}
 
-	body, err := c.get(ctx, reqURL.String(), maxDocBytes)
+	body, err := c.get(ctx, reqURL.String())
 	if err != nil {
 		return nil, fmt.Errorf("fetching download metadata: %w", err)
 	}
@@ -129,10 +129,26 @@ func isBareFilename(name string) bool {
 	return name != "" && name != "." && name != ".." && !strings.ContainsAny(name, `/\`)
 }
 
-// get fetches a small document and returns at most maxBytes of the
-// body; a larger body or a non-200 status is an error. Each call gets
-// its own docTimeout on top of the caller's context.
-func (c *Client) get(ctx context.Context, u string, maxBytes int64) ([]byte, error) {
+// get fetches a small document with retry and returns at most
+// maxDocBytes of the body; a larger body or a non-200 status is an
+// error. Each HTTP call is one retry unit.
+func (c *Client) get(ctx context.Context, u string) ([]byte, error) {
+	var body []byte
+	err := withRetry(ctx, func() error {
+		b, err := c.getOnce(ctx, u)
+		if err != nil {
+			return err
+		}
+		body = b
+		return nil
+	})
+	return body, err
+}
+
+// getOnce is a single document fetch attempt, carrying its own
+// docTimeout on top of the caller's context.
+func (c *Client) getOnce(ctx context.Context, u string) ([]byte, error) {
+	const maxBytes = int64(maxDocBytes)
 	ctx, cancel := context.WithTimeout(ctx, docTimeout)
 	defer cancel()
 
