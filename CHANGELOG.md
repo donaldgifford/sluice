@@ -24,6 +24,10 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(registry)* Bounded retry with backoff and clean cancellation
 - *(registry)* FetchVerified orchestration and httptest fake registry
 
+### Bug Fixes
+
+- *(deps)* Bump cloudflare/circl to v1.6.3 for GO-2026-4550
+
 ### Refactor
 
 - *(cli)* Close Phase 2 with style-review fixes
