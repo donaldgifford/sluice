@@ -4,9 +4,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 
 	"github.com/donaldgifford/sluice/internal/bootstrap"
@@ -27,14 +24,7 @@ func newBootstrapCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		if *out != "" {
-			if err := os.WriteFile(*out, data, 0o644); err != nil {
-				return fmt.Errorf("writing %s: %w", *out, err)
-			}
-			return nil
-		}
-		_, err = cmd.OutOrStdout().Write(data)
-		return err
+		return writeOutput(cmd, data, *out)
 	}
 	return cmd
 }

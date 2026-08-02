@@ -44,40 +44,57 @@ func exportGolden(t *testing.T, src, golden string) {
 	}
 }
 
-func TestExportJSONBasic(t *testing.T) {
+func TestExportJSON(t *testing.T) {
 	t.Parallel()
 
-	exportGolden(t, header+`provider "registry.terraform.io/hashicorp/aws" {
+	tests := []struct {
+		name   string
+		src    string
+		golden string
+	}{
+		{
+			name: "basic",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
   versions = ["6.2.0", "6.3.0"]
 }
 
 provider "registry.opentofu.org/hashicorp/null" {
   versions = ["3.2.4"]
 }
-`, "export_basic.json")
-}
-
-func TestExportJSONEmpty(t *testing.T) {
-	t.Parallel()
-
-	exportGolden(t, header, "export_empty.json")
-}
-
-func TestExportJSONSorted(t *testing.T) {
-	t.Parallel()
-
-	// Declaration order deliberately violates both sort properties:
-	// hashicorp before cloudflare, versions shuffled with a 6.9/6.10
-	// pair and a prerelease. The golden proves keys sort lexically
-	// and versions sort version-aware.
-	exportGolden(t, header+`provider "registry.terraform.io/hashicorp/aws" {
+`,
+			golden: "export_basic.json",
+		},
+		{
+			name:   "empty",
+			src:    header,
+			golden: "export_empty.json",
+		},
+		{
+			// Declaration order deliberately violates both sort
+			// properties: hashicorp before cloudflare, versions
+			// shuffled with a 6.9/6.10 pair and a prerelease. The
+			// golden proves keys sort lexically and versions sort
+			// version-aware.
+			name: "sorted",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
   versions = ["7.0.0", "6.10.0", "7.0.0-beta1", "6.9.0"]
 }
 
 provider "registry.terraform.io/cloudflare/cloudflare" {
   versions = ["5.4.0"]
 }
-`, "export_sorted.json")
+`,
+			golden: "export_sorted.json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			exportGolden(t, tt.src, tt.golden)
+		})
+	}
 }
 
 func TestExportJSONDoesNotMutateManifest(t *testing.T) {

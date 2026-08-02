@@ -18,6 +18,10 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(export)* Emit the canonical JSON projection of the approved set
 - *(bootstrap)* Seed a validating manifest from fleet lock files
 
+### Refactor
+
+- *(cli)* Close Phase 2 with style-review fixes
+
 ### Documentation
 
 - Green the markdown lint baseline
