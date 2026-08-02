@@ -11,6 +11,7 @@ created: 2026-07-27
 # DESIGN 0004: Policy Library, Generator, and OCI Distribution
 
 <!--toc:start-->
+
 - [Overview](#overview)
 - [Goals and Non-Goals](#goals-and-non-goals)
   - [Goals](#goals)
@@ -72,7 +73,7 @@ system-of-record data source.
 
 ### Repository layout
 
-```
+```text
 policy/
   provider/        # mirror allowlist, version governance
   module-source/   # module origin governance

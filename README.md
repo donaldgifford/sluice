@@ -18,9 +18,9 @@ just run -- --help            # run via `go run`
 just release v0.1.0           # tags + pushes; CI runs goreleaser
 ```
 
-Multi-arch archives land on the Forgejo (or GitHub) release page.
-Version metadata (`version`, `commit`, `date`) is embedded via
-`-ldflags` and surfaced in the binary's startup output.
+Multi-arch archives land on the Forgejo (or GitHub) release page. Version
+metadata (`version`, `commit`, `date`) is embedded via `-ldflags` and surfaced
+in the binary's startup output.
 
 ## Container
 
@@ -35,7 +35,7 @@ Image is distroless + nonroot; entrypoint is `sluice`.
 
 ## Layout
 
-```
+```text
 cmd/sluice/    main package
 internal/               library code (private to this module)
 Dockerfile              multi-stage distroless build
@@ -46,8 +46,7 @@ justfile                task runner
 
 ## Conventions
 
-See `CLAUDE.md` for the full operating notes (Go-specific +
-homelab universals).
+See `CLAUDE.md` for the full operating notes (Go-specific + homelab universals).
 
 ## License
 

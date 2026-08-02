@@ -72,7 +72,7 @@ provider "registry.opentofu.org/hashicorp/null" {
 Files in the config directory are merged as HCL bodies. Recommended: one file
 per namespace or team-owned group, `mirror.hcl` for the `mirror` block.
 
-```
+```text
 approved-providers/
   mirror.hcl        # mirror {} only
   hashicorp.hcl     # the big ones
@@ -132,7 +132,7 @@ Removal is an HCL edit, reviewed like any other change:
 
 ## Commands
 
-```
+```text
 sluice validate  [-config-dir DIR | -config-file FILE]
 sluice plan      [-config-dir DIR | -config-file FILE] [-json] [-detailed-exitcode]
 sluice apply     [-config-dir DIR | -config-file FILE] [-auto-approve] [-json]
@@ -154,7 +154,7 @@ Exit codes: `0` no changes · `1` error · `2` changes present
 
 Human output:
 
-```
+```text
 sluice plan
 
 registry.terraform.io/hashicorp/aws
@@ -261,7 +261,7 @@ sluice wants.
 
 ## Mirror layout (what apply produces)
 
-```
+```text
 registry.terraform.io/
   hashicorp/
     aws/
@@ -330,7 +330,7 @@ provider_installation {
 
 For the template scaffold; adjust to taste.
 
-```
+```text
 cmd/sluice/          # main, command wiring, flag parsing, exit codes
 internal/config/     # HCL schema types + decode/validate (hclkit)
 internal/mirror/     # protocol types, index read/parse, diff engine

@@ -29,9 +29,11 @@ docz create rfc "Your RFC Title"
 - **Superseded**: Replaced by another RFC
 
 <!-- BEGIN DOCZ AUTO-GENERATED -->
+
 ## All RFCs
 
-| ID | Title | Status | Date | Author | Link |
-|----|-------|--------|------|--------|------|
-| RFC-0001 | Terraform Provider Cache and Internal Provider Mirror | Draft | 2026-07-27 | Donald Gifford | [0001-terraform-provider-cache-and-internal-provider-mirror.md](0001-terraform-provider-cache-and-internal-provider-mirror.md) |
+| ID       | Title                                                 | Status | Date       | Author         | Link                                                                                                                           |
+| -------- | ----------------------------------------------------- | ------ | ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| RFC-0001 | Terraform Provider Cache and Internal Provider Mirror | Draft  | 2026-07-27 | Donald Gifford | [0001-terraform-provider-cache-and-internal-provider-mirror.md](0001-terraform-provider-cache-and-internal-provider-mirror.md) |
+
 <!-- END DOCZ AUTO-GENERATED -->
