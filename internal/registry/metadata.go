@@ -129,9 +129,13 @@ func isBareFilename(name string) bool {
 	return name != "" && name != "." && name != ".." && !strings.ContainsAny(name, `/\`)
 }
 
-// get fetches u and returns at most maxBytes of the response body; a
-// larger body or a non-200 status is an error.
+// get fetches a small document and returns at most maxBytes of the
+// body; a larger body or a non-200 status is an error. Each call gets
+// its own docTimeout on top of the caller's context.
 func (c *Client) get(ctx context.Context, u string, maxBytes int64) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, docTimeout)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("building request for %s: %w", u, err)

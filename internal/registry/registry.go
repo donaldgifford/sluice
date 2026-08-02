@@ -23,7 +23,11 @@ const (
 	// responses. A multi-megabyte sums file is anomalous and fails.
 	maxDocBytes = 1 << 20
 
-	defaultHTTPTimeout = 30 * time.Second
+	// docTimeout caps metadata, sums, and signature fetches. Zip
+	// downloads deliberately get no fixed timeout — a large archive
+	// on a slow link is legitimate — only the caller's context and
+	// the size bound limit them.
+	docTimeout = 30 * time.Second
 )
 
 // Client fetches and verifies provider release artifacts from origin
@@ -56,10 +60,12 @@ func WithMaxZipBytes(n int64) Option {
 }
 
 // New returns a Client with sane production defaults: https-only,
-// 2 GiB zip bound, 30s per-request timeout.
+// 2 GiB zip bound, 30s timeout on document fetches. No overall
+// timeout is set on the HTTP client itself — zip streams are bounded
+// by size and context instead.
 func New(opts ...Option) *Client {
 	c := &Client{
-		httpClient:  &http.Client{Timeout: defaultHTTPTimeout},
+		httpClient:  &http.Client{},
 		maxZipBytes: defaultMaxZipBytes,
 	}
 	for _, opt := range opts {

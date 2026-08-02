@@ -180,7 +180,7 @@ tampered-fixture suite is the proof it fails closed.
       protocol-generic so `registry.opentofu.org` addresses work identically.
 - [x] GPG signature verification over `SHA256SUMS` against the
       registry-published keys (`ProtonMail/go-crypto` openpgp).
-- [ ] Zip download (streamed to a temp file, size-bounded, context-aware) and
+- [x] Zip download (streamed to a temp file, size-bounded, context-aware) and
       SHA-256 verification against the signed sums entry.
 - [ ] Retry with backoff on registry calls; clean context cancellation.
 - [x] `internal/hash`: `h1:` via `dirhash.HashZip`
