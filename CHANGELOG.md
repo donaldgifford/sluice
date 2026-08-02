@@ -17,6 +17,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(mirror)* Add the pure diff engine with deterministic ordering
 - *(export)* Emit the canonical JSON projection of the approved set
 - *(bootstrap)* Seed a validating manifest from fleet lock files
+- *(hash)* H1 provider zip hashing via dirhash
 
 ### Refactor
 
