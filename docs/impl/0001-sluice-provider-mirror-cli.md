@@ -173,7 +173,7 @@ tampered-fixture suite is the proof it fails closed.
 
 #### Tasks
 
-- [ ] `internal/registry`: resolve per-platform download metadata from the
+- [x] `internal/registry`: resolve per-platform download metadata from the
       origin registry API
       (`/v1/providers/{ns}/{type}/{version}/download/{os}/{arch}`): zip URL,
       filename, `SHA256SUMS`, `SHA256SUMS.sig`, publisher signing keys —
