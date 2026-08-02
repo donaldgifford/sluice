@@ -102,16 +102,16 @@ into.
       clear usage error.
 - [x] Merge semantics: duplicate provider labels across files are an error —
       merge is explicit, never a silent union.
-- [ ] Validation rules, each with a targeted error message:
-  - [ ] exactly one `mirror` block across all files;
-  - [ ] labels parse as three-segment source addresses
+- [x] Validation rules, each with a targeted error message:
+  - [x] exactly one `mirror` block across all files;
+  - [x] labels parse as three-segment source addresses
         (`hostname/namespace/type`) with a valid hostname;
-  - [ ] versions are exact semver (`hashicorp/go-version`), unique per block;
+  - [x] versions are exact semver (`hashicorp/go-version`), unique per block;
         constraint syntax (`~>`, `>=`, ...) rejected with an explanation of why
         sluice never resolves;
-  - [ ] platforms drawn from the curated `os_arch` matrix (`linux_amd64`,
+  - [x] platforms drawn from the curated `os_arch` matrix (`linux_amd64`,
         `darwin_arm64`, ...), one place in code to extend;
-  - [ ] empty `versions` list is an error (removing a provider = deleting its
+  - [x] empty `versions` list is an error (removing a provider = deleting its
         block).
 - [ ] cobra command tree: root plus the five subcommands, pflag double-dash flag
       surface (`--config-dir`, `--auto-approve`, ...); update the spec's

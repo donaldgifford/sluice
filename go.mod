@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	github.com/donaldgifford/hclkit v0.1.0
+	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/hcl/v2 v2.24.0
 )
 

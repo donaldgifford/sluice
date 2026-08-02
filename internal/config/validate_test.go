@@ -109,3 +109,256 @@ func TestDuplicateProviderLabelsAcrossFiles(t *testing.T) {
 		`provider "registry.terraform.io/hashicorp/aws": declared more than once`,
 	})
 }
+
+func TestSourceAddressValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		src  string
+		want []string
+	}{
+		{
+			name: "two segments",
+			src: header + `provider "hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{`provider "hashicorp/aws": invalid source address`, `"hostname/namespace/type"`},
+		},
+		{
+			name: "four segments",
+			src: header + `provider "registry.terraform.io/hashicorp/aws/extra" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{"invalid source address"},
+		},
+		{
+			name: "empty segment",
+			src: header + `provider "registry.terraform.io//aws" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{"invalid source address"},
+		},
+		{
+			name: "hostname without a dot",
+			src: header + `provider "localhost/hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{"invalid source address"},
+		},
+		{
+			name: "hostname with invalid characters",
+			src: header + `provider "registry_internal.io/hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{"invalid source address"},
+		},
+		{
+			name: "hostname label with leading hyphen",
+			src: header + `provider "-registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`,
+			want: []string{"invalid source address"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := loadBytes("test.hcl", []byte(tt.src))
+			assertValidationError(t, err, tt.want)
+		})
+	}
+}
+
+func TestSourceAddressNormalization(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "Registry.Terraform.IO/HashiCorp/AWS" {
+  versions = ["6.3.0"]
+}
+`
+	m, err := loadBytes("test.hcl", []byte(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := m.Providers[0].Source; got != "registry.terraform.io/hashicorp/aws" {
+		t.Fatalf("Source = %q, want the lowercase normalized form", got)
+	}
+}
+
+func TestDuplicateLabelsDetectedAfterNormalization(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.2.0"]
+}
+
+provider "Registry.Terraform.IO/HashiCorp/AWS" {
+  versions = ["6.3.0"]
+}
+`
+	_, err := loadBytes("test.hcl", []byte(src))
+	assertValidationError(t, err, []string{"declared more than once"})
+}
+
+func TestVersionValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		src  string
+		want []string
+	}{
+		{
+			name: "empty versions list",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = []
+}
+`,
+			want: []string{"versions must not be empty", "delete its block"},
+		},
+		{
+			name: "pessimistic constraint",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["~> 6.3"]
+}
+`,
+			want: []string{
+				`versions[0] "~> 6.3": version constraints are not supported`,
+				"never resolves",
+			},
+		},
+		{
+			name: "range constraint",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = [">= 6.0, < 7.0"]
+}
+`,
+			want: []string{"version constraints are not supported"},
+		},
+		{
+			name: "garbage version",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["banana"]
+}
+`,
+			want: []string{`versions[0] "banana" is not a valid version`},
+		},
+		{
+			name: "v prefix rejected",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["v6.3.0"]
+}
+`,
+			want: []string{`versions[0] "v6.3.0": registry versions are unprefixed`},
+		},
+		{
+			name: "exact duplicate",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0", "6.3.0"]
+}
+`,
+			want: []string{`duplicate version "6.3.0"`},
+		},
+		{
+			name: "duplicate via normalization",
+			src: header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0", "6.3"]
+}
+`,
+			want: []string{`duplicate version "6.3.0" ("6.3" normalizes to it)`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := loadBytes("test.hcl", []byte(tt.src))
+			assertValidationError(t, err, tt.want)
+		})
+	}
+}
+
+func TestVersionPassCases(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0", "6.2.0", "3.2.0-beta1", "6.4"]
+}
+`
+	m, err := loadBytes("test.hcl", []byte(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := m.Providers[0].Versions
+	want := []string{"6.3.0", "6.2.0", "3.2.0-beta1", "6.4.0"}
+	if len(got) != len(want) {
+		t.Fatalf("Versions = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Versions[%d] = %q, want %q (declaration order, normalized)", i, got[i], want[i])
+		}
+	}
+}
+
+func TestEmptyPlatformOverride(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions  = ["6.3.0"]
+  platforms = []
+}
+`
+	_, err := loadBytes("test.hcl", []byte(src))
+	assertValidationError(t, err, []string{
+		"platforms override must not be empty",
+		"omit the attribute to inherit mirror.platforms",
+	})
+}
+
+func TestEmptyMirrorPlatforms(t *testing.T) {
+	t.Parallel()
+
+	src := `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = []
+}
+`
+	_, err := loadBytes("test.hcl", []byte(src))
+	assertValidationError(t, err, []string{"mirror: platforms must not be empty"})
+}
+
+func TestAllRuleFamiliesReportTogether(t *testing.T) {
+	t.Parallel()
+
+	// One config violating label, version, and platform rules at once:
+	// the semantic pass must surface all of them in a single run.
+	src := `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_riscv64"]
+}
+
+provider "hashicorp/aws" {
+  versions = ["~> 6.3"]
+}
+`
+	_, err := loadBytes("test.hcl", []byte(src))
+	assertValidationError(t, err, []string{
+		`unknown platform "linux_riscv64"`,
+		"invalid source address",
+		"version constraints are not supported",
+	})
+}
