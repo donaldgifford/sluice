@@ -1,9 +1,9 @@
 ---
 # yaml-language-server: $schema=https://www.schemastore.org/dependabot-2.0.json
 # Security-updates-only mode. Renovate owns routine version bumps
-# (per the `# renovate:` annotations in mise.toml, docker-bake.hcl,
-# etc.); Dependabot's only job here is the GitHub Advisory feed —
-# when GHAS flags a CVE in our dep tree, open a PR.
+# (per the `# renovate:` annotations in mise.toml, etc.); Dependabot's
+# only job here is the GitHub Advisory feed — when GHAS flags a CVE in
+# our dep tree, open a PR.
 #
 # `open-pull-requests-limit: 0` is the documented switch that disables
 # version updates while keeping security updates enabled:
@@ -23,22 +23,6 @@ updates:
       - donaldgifford
     groups:
       actions-security:
-        applies-to: security-updates
-        patterns: ["*"]
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 0
-    labels:
-      - security
-      - dependencies
-      - docker
-    assignees:
-      - donaldgifford
-    groups:
-      docker-security:
         applies-to: security-updates
         patterns: ["*"]
 

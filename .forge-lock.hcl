@@ -105,12 +105,6 @@ default ".gitignore" {
   hash     = "sha256:2ade0572a141b09f93c32c355d9f51a12f535feeb449979554e11c8fa0845a5a"
 }
 
-default ".markdownlint.yaml" {
-  source   = "category-default"
-  strategy = "overwrite"
-  hash     = "sha256:c109f82759d9451b3060f5e8e1cb07752aca359faea7bc6057e61dd7eb7f20b7"
-}
-
 default ".prettierrc.yaml" {
   source   = "category-default"
   strategy = "overwrite"
