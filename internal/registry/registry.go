@@ -4,11 +4,18 @@
 package registry
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/donaldgifford/sluice/internal/config"
+	"github.com/donaldgifford/sluice/internal/hash"
 )
 
 const (
@@ -72,6 +79,102 @@ func New(opts ...Option) *Client {
 		opt(c)
 	}
 	return c
+}
+
+// Artifact is a fully verified, staged provider release archive —
+// everything Phase 4's publisher needs for upload, the version
+// document, the audit line, and the attestation, with no crypto facts
+// re-derived downstream.
+type Artifact struct {
+	Source   string // "hostname/namespace/type"
+	Version  string
+	Platform config.Platform
+	Path     string // staged zip: destDir/<Filename>
+	Filename string // upstream release filename == mirror object name
+	SHA256   string // hex, from the signed sums entry (== streamed hash)
+	H1       string // "h1:..." dirhash of the zip contents
+	// SigningKeyID is the upper-hex primary key ID of the
+	// registry-published key that verified SHA256SUMS.
+	SigningKeyID string
+}
+
+// FetchVerified runs the full verification chain for one (provider,
+// version, platform) tuple: metadata → GPG-verified sums → streamed
+// zip download with SHA-256 → "h1:" dirhash — and renames the zip
+// into destDir only after every check passes. On any error nothing is
+// staged. destDir must exist; the temp file lives inside it so the
+// final rename is atomic.
+func (c *Client) FetchVerified(ctx context.Context, source, version string, platform config.Platform, destDir string) (*Artifact, error) {
+	pstr := platform.String()
+	addr, err := parseSource(source)
+	if err != nil {
+		return nil, &Error{Source: source, Version: version, Platform: pstr, Step: "metadata", Err: err}
+	}
+
+	meta, err := c.downloadMeta(ctx, addr, version, platform)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "metadata", err)
+	}
+
+	sums, err := c.get(ctx, meta.ShasumsURL)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "sums", fmt.Errorf("fetching SHA256SUMS: %w", err))
+	}
+	sig, err := c.get(ctx, meta.ShasumsSignatureURL)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "signature", fmt.Errorf("fetching SHA256SUMS.sig: %w", err))
+	}
+
+	keyID, err := verifySums(meta.SigningKeys.GPGKeys, sums, sig)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "signature", err)
+	}
+
+	wantHex, err := sumsEntry(sums, meta.Filename)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "sums", err)
+	}
+	// The signed sums are the trust root, but a registry whose
+	// metadata shasum contradicts them is an incident to surface,
+	// not to paper over.
+	if meta.Shasum != "" && meta.Shasum != wantHex {
+		return nil, fail(addr, version, pstr, "sums",
+			fmt.Errorf("metadata shasum %s contradicts signed sums entry %s", meta.Shasum, wantHex))
+	}
+
+	tempPath, err := c.fetchZipRetry(ctx, meta.DownloadURL, wantHex, destDir, meta.Filename)
+	if err != nil {
+		return nil, fail(addr, version, pstr, "download", err)
+	}
+
+	h1, err := hash.Zip(tempPath)
+	if err != nil {
+		if rerr := os.Remove(tempPath); rerr != nil {
+			err = errors.Join(err, rerr)
+		}
+		return nil, fail(addr, version, pstr, "hash", err)
+	}
+
+	// The commit point: only a fully verified zip ever exists under
+	// its final name.
+	finalPath := filepath.Join(destDir, meta.Filename)
+	if err := os.Rename(tempPath, finalPath); err != nil {
+		if rerr := os.Remove(tempPath); rerr != nil {
+			err = errors.Join(err, rerr)
+		}
+		return nil, fail(addr, version, pstr, "download", fmt.Errorf("staging verified zip: %w", err))
+	}
+
+	return &Artifact{
+		Source:       addr.String(),
+		Version:      version,
+		Platform:     platform,
+		Path:         finalPath,
+		Filename:     meta.Filename,
+		SHA256:       wantHex,
+		H1:           h1,
+		SigningKeyID: keyID,
+	}, nil
 }
 
 // fail wraps err into the package's tuple-carrying [Error].

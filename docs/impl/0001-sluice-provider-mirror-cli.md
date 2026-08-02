@@ -187,7 +187,7 @@ tampered-fixture suite is the proof it fails closed.
       (`golang.org/x/mod/sumdb/dirhash`); golden tests whose expected values are
       cross-checked against real `.terraform.lock.hcl` entries for the fixture
       providers.
-- [ ] `httptest` fake registry serving fixture zips, sums, sigs, and keys,
+- [x] `httptest` fake registry serving fixture zips, sums, sigs, and keys,
       including an OpenTofu-registry-shaped fixture.
 - [ ] Tampered-fixture suite — each case must abort with a wrapped error
       carrying the (provider, version, platform) tuple and stage nothing:
