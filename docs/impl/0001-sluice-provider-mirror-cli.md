@@ -145,7 +145,7 @@ the policy repo's data contract, so its bytes are frozen here.
 - [x] Table-driven diff tests: each action type, combinations, the empty plan,
       platform overrides, and full-provider removal (deleted block → all
       versions removed).
-- [ ] `sluice export`: canonical JSON projection
+- [x] `sluice export`: canonical JSON projection
       (`{"providers": {"<addr>": ["<version>", ...]}}`) — sorted keys, sorted
       versions, deterministic bytes; golden tests; no network, no side effects.
 - [ ] `sluice bootstrap PATH... [--out FILE]`: walk for `.terraform.lock.hcl`,

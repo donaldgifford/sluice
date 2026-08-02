@@ -15,6 +15,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(config)* Close Phase 1 with style-review fixes and rule-table audit
 - *(mirror)* Add protocol types and desired-state expansion
 - *(mirror)* Add the pure diff engine with deterministic ordering
+- *(export)* Emit the canonical JSON projection of the approved set
 
 ### Documentation
 

@@ -5,6 +5,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -109,7 +111,6 @@ func TestLaterPhaseCommandsAreStubbed(t *testing.T) {
 	}{
 		{name: "plan", args: []string{"plan", "--config-file", "testdata/valid.hcl"}},
 		{name: "apply", args: []string{"apply", "--config-file", "testdata/valid.hcl"}},
-		{name: "export", args: []string{"export", "--config-file", "testdata/valid.hcl"}},
 		{name: "bootstrap", args: []string{"bootstrap", "."}},
 	}
 
@@ -133,5 +134,45 @@ func TestStubCommandsStillValidateConfig(t *testing.T) {
 	_, err := execute(t, "plan", "--config-file", "testdata/invalid.hcl")
 	if err == nil || !strings.Contains(err.Error(), "version constraints are not supported") {
 		t.Fatalf("plan on invalid config: err = %v, want the validation error", err)
+	}
+}
+
+func TestExportCommand(t *testing.T) {
+	t.Parallel()
+
+	out, err := execute(t, "export", "--config-file", "testdata/valid.hcl")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := `{
+  "providers": {
+    "registry.terraform.io/hashicorp/aws": [
+      "6.3.0"
+    ]
+  }
+}
+`
+	if out != want {
+		t.Fatalf("export output = %q, want %q", out, want)
+	}
+}
+
+func TestExportCommandOutFile(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "providers.json")
+	stdout, err := execute(t, "export", "--config-file", "testdata/valid.hcl", "--out", path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stdout != "" {
+		t.Fatalf("stdout = %q, want empty when --out is set", stdout)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading --out file: %v", err)
+	}
+	if !strings.Contains(string(data), `"registry.terraform.io/hashicorp/aws"`) {
+		t.Fatalf("--out content = %q, missing the provider key", data)
 	}
 }
