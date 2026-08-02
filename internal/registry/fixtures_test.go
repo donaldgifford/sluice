@@ -125,7 +125,10 @@ type fakeRegistry struct {
 	// — the cross-host CDN shape. Otherwise a relative URL is served,
 	// exercising ResolveReference.
 	absZipURL string
-	// shasum, when set, overrides the metadata shasum field.
+	// shasum is the metadata shasum field, frozen at construction:
+	// tampering the zip blob must NOT move the registry's metadata,
+	// exactly as a blob-store attacker cannot rewrite the registry's
+	// download response.
 	shasum string
 }
 
@@ -148,7 +151,8 @@ func newFakeRegistry(t *testing.T, source, version string, plat config.Platform,
 		zip:     zipArchive(t, files),
 	}
 	f.published = publishedKeys(t, f.key)
-	f.sums = []byte(sha256Hex(f.zip) + "  " + f.zipName + "\n")
+	f.shasum = sha256Hex(f.zip)
+	f.sums = []byte(f.shasum + "  " + f.zipName + "\n")
 	f.sig = signDetached(t, f.key, f.sums)
 
 	mux := http.NewServeMux()
@@ -158,10 +162,6 @@ func newFakeRegistry(t *testing.T, source, version string, plat config.Platform,
 			if f.absZipURL != "" {
 				zipURL = f.absZipURL
 			}
-			shasum := sha256Hex(f.zip)
-			if f.shasum != "" {
-				shasum = f.shasum
-			}
 			body, err := json.Marshal(map[string]any{
 				"download_url":          zipURL,
 				"filename":              f.zipName,
@@ -169,7 +169,7 @@ func newFakeRegistry(t *testing.T, source, version string, plat config.Platform,
 				"shasums_signature_url": "/files/" + f.zipName + "_SHA256SUMS.sig",
 				"os":                    r.PathValue("os"),
 				"arch":                  r.PathValue("arch"),
-				"shasum":                shasum,
+				"shasum":                f.shasum,
 				"signing_keys":          map[string]any{"gpg_keys": f.published},
 			})
 			if err != nil {

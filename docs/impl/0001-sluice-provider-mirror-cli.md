@@ -189,12 +189,12 @@ tampered-fixture suite is the proof it fails closed.
       providers.
 - [x] `httptest` fake registry serving fixture zips, sums, sigs, and keys,
       including an OpenTofu-registry-shaped fixture.
-- [ ] Tampered-fixture suite — each case must abort with a wrapped error
+- [x] Tampered-fixture suite — each case must abort with a wrapped error
       carrying the (provider, version, platform) tuple and stage nothing:
-  - [ ] `SHA256SUMS.sig` invalid for the sums file;
-  - [ ] sums signed by a key the registry did not publish;
-  - [ ] zip modified after signing (checksum mismatch);
-  - [ ] zip's entry missing from the sums file.
+  - [x] `SHA256SUMS.sig` invalid for the sums file;
+  - [x] sums signed by a key the registry did not publish;
+  - [x] zip modified after signing (checksum mismatch);
+  - [x] zip's entry missing from the sums file.
 
 #### Success Criteria
 

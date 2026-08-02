@@ -32,6 +32,10 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Green the markdown lint baseline
 
+### Testing
+
+- *(registry)* Tampered-fixture fail-closed suite
+
 ### Miscellaneous Tasks
 
 - *(dependabot)* Initialize dependabot
