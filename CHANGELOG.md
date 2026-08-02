@@ -27,6 +27,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Bug Fixes
 
 - *(deps)* Bump cloudflare/circl to v1.6.3 for GO-2026-4550
+- *(registry)* Close Phase 3 with security and style review hardening
 
 ### Refactor
 

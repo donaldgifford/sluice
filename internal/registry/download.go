@@ -82,6 +82,12 @@ func (c *Client) fetchZip(ctx context.Context, urlStr, wantHex, destDir, filenam
 	if n > c.maxZipBytes {
 		return "", fmt.Errorf("zip exceeds the %d byte size bound", c.maxZipBytes)
 	}
+	// Flush to stable storage before the commit rename: a crash after
+	// rename must never leave unverified (zeroed/truncated) blocks
+	// under a fully staged name.
+	if err = f.Sync(); err != nil {
+		return "", fmt.Errorf("syncing temp file: %w", err)
+	}
 	if err = f.Close(); err != nil {
 		return "", fmt.Errorf("closing temp file: %w", err)
 	}

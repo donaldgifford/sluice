@@ -18,7 +18,8 @@ import (
 
 // metaBody renders a v1 download response, with overrides applied to
 // the default self-consistent payload.
-func metaBody(overrides map[string]any) string {
+func metaBody(t *testing.T, overrides map[string]any) string {
+	t.Helper()
 	m := map[string]any{
 		"download_url":          "/files/terraform-provider-null_3.2.4_linux_amd64.zip",
 		"filename":              "terraform-provider-null_3.2.4_linux_amd64.zip",
@@ -42,7 +43,7 @@ func metaBody(overrides map[string]any) string {
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
-		panic(err) // literal maps above; cannot fail
+		t.Fatalf("marshaling metadata: %v", err)
 	}
 	return string(b)
 }
@@ -70,7 +71,7 @@ func TestDownloadMeta(t *testing.T) {
 	t.Run("relative URLs resolve against the request URL", func(t *testing.T) {
 		t.Parallel()
 
-		c, srv := metaServer(t, http.StatusOK, metaBody(nil))
+		c, srv := metaServer(t, http.StatusOK, metaBody(t, nil))
 		meta, err := c.downloadMeta(context.Background(), providerAddr{"registry.terraform.io", "hashicorp", "null"}, "3.2.4", linuxAmd64)
 		if err != nil {
 			t.Fatalf("downloadMeta() unexpected error: %v", err)
@@ -95,7 +96,7 @@ func TestDownloadMeta(t *testing.T) {
 		t.Parallel()
 
 		abs := "https://releases.example.com/null/3.2.4/terraform-provider-null_3.2.4_linux_amd64.zip"
-		c, _ := metaServer(t, http.StatusOK, metaBody(map[string]any{"download_url": abs}))
+		c, _ := metaServer(t, http.StatusOK, metaBody(t, map[string]any{"download_url": abs}))
 		meta, err := c.downloadMeta(context.Background(), providerAddr{"registry.terraform.io", "hashicorp", "null"}, "3.2.4", linuxAmd64)
 		if err != nil {
 			t.Fatalf("downloadMeta() unexpected error: %v", err)
@@ -151,6 +152,14 @@ func TestDownloadMetaValidation(t *testing.T) {
 		{"missing shasums_signature_url", map[string]any{"shasums_signature_url": nil}, "missing shasums_signature_url"},
 		{"os mismatch", map[string]any{"os": "windows"}, "requested linux_amd64"},
 		{"arch mismatch", map[string]any{"arch": "arm64"}, "requested linux_amd64"},
+		{
+			// A registry naming its zip after some other artifact
+			// could steer which basename gets staged (and later,
+			// which mirror object gets written).
+			"filename not matching the tuple",
+			map[string]any{"filename": "terraform-provider-aws_6.0.0_linux_amd64.zip"},
+			"does not match expected",
+		},
 		{"filename with slash", map[string]any{"filename": "../../etc/evil.zip"}, "not a bare file name"},
 		{"filename with backslash", map[string]any{"filename": `..\evil.zip`}, "not a bare file name"},
 		{"filename dot dot", map[string]any{"filename": ".."}, "not a bare file name"},
@@ -166,7 +175,7 @@ func TestDownloadMetaValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			c, _ := metaServer(t, http.StatusOK, metaBody(tt.overrides))
+			c, _ := metaServer(t, http.StatusOK, metaBody(t, tt.overrides))
 			_, err := c.downloadMeta(context.Background(), providerAddr{"registry.terraform.io", "hashicorp", "null"}, "3.2.4", linuxAmd64)
 			if err == nil || !strings.Contains(err.Error(), tt.wantMsg) {
 				t.Fatalf("downloadMeta() error = %v, want containing %q", err, tt.wantMsg)

@@ -203,3 +203,115 @@ func TestFetchVerified(t *testing.T) {
 		}
 	})
 }
+
+func TestRedirectPolicy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("refuses https to http downgrade in production", func(t *testing.T) {
+		t.Parallel()
+
+		c := New()
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://mitm.example.com/zip", http.NoBody)
+		err := c.httpClient.CheckRedirect(req, []*http.Request{{}})
+		if !errors.Is(err, errInsecureURL) {
+			t.Fatalf("CheckRedirect() error = %v, want errInsecureURL", err)
+		}
+	})
+
+	t.Run("allows https hops in production", func(t *testing.T) {
+		t.Parallel()
+
+		c := New()
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://cdn.example.com/zip", http.NoBody)
+		if err := c.httpClient.CheckRedirect(req, []*http.Request{{}}); err != nil {
+			t.Fatalf("CheckRedirect() unexpected error: %v", err)
+		}
+	})
+
+	t.Run("bounds the redirect chain", func(t *testing.T) {
+		t.Parallel()
+
+		c := New()
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://cdn.example.com/zip", http.NoBody)
+		via := make([]*http.Request, maxRedirects)
+		err := c.httpClient.CheckRedirect(req, via)
+		if err == nil || !strings.Contains(err.Error(), "stopped after") {
+			t.Fatalf("CheckRedirect() error = %v, want redirect-limit refusal", err)
+		}
+	})
+
+	t.Run("follows floor-satisfying redirects end to end", func(t *testing.T) {
+		t.Parallel()
+
+		// A registry that 302s its zip to a second path — allowed as
+		// long as every hop satisfies the transport floor.
+		content := []byte("redirected zip bytes")
+		mux := http.NewServeMux()
+		mux.HandleFunc("GET /zip", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/real-zip", http.StatusFound)
+		})
+		mux.HandleFunc("GET /real-zip", func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(content)
+		})
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+		c := New(WithBaseURL(func(string) string { return srv.URL }))
+
+		destDir := t.TempDir()
+		path, err := c.fetchZip(context.Background(), srv.URL+"/zip", sha256Hex(content), destDir, "p.zip")
+		if err != nil {
+			t.Fatalf("fetchZip() unexpected error: %v", err)
+		}
+		if path == "" {
+			t.Fatal("fetchZip() returned empty path")
+		}
+	})
+}
+
+func TestWithHTTPClientKeepsRedirectFloor(t *testing.T) {
+	t.Parallel()
+
+	// An injected client must not carry its own redirect policy past
+	// the transport floor — New overwrites CheckRedirect regardless.
+	custom := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return nil }}
+	c := New(WithHTTPClient(custom))
+	if c.httpClient != custom {
+		t.Fatal("WithHTTPClient did not install the injected client")
+	}
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://mitm.example.com/zip", http.NoBody)
+	if err := c.httpClient.CheckRedirect(req, nil); !errors.Is(err, errInsecureURL) {
+		t.Fatalf("CheckRedirect() error = %v, want errInsecureURL on injected client", err)
+	}
+}
+
+func TestFetchVerifiedRefusesToClobberStagedFile(t *testing.T) {
+	t.Parallel()
+
+	files := map[string]string{"terraform-provider-null_v3.2.4_x5": "fake binary\n"}
+	f := newFakeRegistry(t, "registry.terraform.io/hashicorp/null", "3.2.4", linuxAmd64, files)
+
+	destDir := t.TempDir()
+	staged := filepath.Join(destDir, f.zipName)
+	if err := os.WriteFile(staged, []byte("previously verified bytes"), 0o600); err != nil {
+		t.Fatalf("pre-staging: %v", err)
+	}
+
+	_, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+	if err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
+		t.Fatalf("FetchVerified() error = %v, want overwrite refusal", err)
+	}
+	got, err := os.ReadFile(staged)
+	if err != nil {
+		t.Fatalf("reading pre-staged file: %v", err)
+	}
+	if string(got) != "previously verified bytes" {
+		t.Errorf("pre-staged file was modified: %q", got)
+	}
+	entries, err := os.ReadDir(destDir)
+	if err != nil {
+		t.Fatalf("reading destDir: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("destDir has %d entries, want only the pre-staged file (no temp orphans)", len(entries))
+	}
+}

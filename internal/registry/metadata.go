@@ -6,6 +6,7 @@ package registry
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -59,24 +60,28 @@ func (c *Client) downloadMeta(ctx context.Context, addr providerAddr, version st
 		return nil, fmt.Errorf("fetching download metadata: %w", err)
 	}
 
-	meta := &downloadMetadata{}
-	if err := json.Unmarshal(body, meta); err != nil {
+	var meta downloadMetadata
+	if err := json.Unmarshal(body, &meta); err != nil {
 		return nil, fmt.Errorf("decoding download metadata: %w", err)
 	}
-	if err := validateMeta(meta, p); err != nil {
+	if err := validateMeta(&meta, addr, version, p); err != nil {
 		return nil, fmt.Errorf("invalid download metadata: %w", err)
 	}
-	if err := c.resolveMetaURLs(reqURL, meta); err != nil {
+	if err := c.resolveMetaURLs(reqURL, &meta); err != nil {
 		return nil, err
 	}
-	return meta, nil
+	return &meta, nil
 }
 
 // validateMeta rejects any response missing a field the verification
-// chain depends on, echoing the wrong platform, or smuggling a path
-// into filename — the one injection surface a hostile registry has
-// into local disk and mirror key layout.
-func validateMeta(meta *downloadMetadata, p config.Platform) error {
+// chain depends on, echoing the wrong platform, or steering the
+// filename — which becomes both an on-disk path and the mirror
+// object name, the one injection surface a hostile registry has into
+// local disk and mirror key layout. Both registries require release
+// archives named terraform-provider-<type>_<version>_<os>_<arch>.zip,
+// so anything else is refused outright.
+func validateMeta(meta *downloadMetadata, addr providerAddr, version string, p config.Platform) error {
+	expected := fmt.Sprintf("terraform-provider-%s_%s_%s_%s.zip", addr.typ, version, p.OS, p.Arch)
 	switch {
 	case meta.DownloadURL == "":
 		return fmt.Errorf("missing download_url")
@@ -90,6 +95,8 @@ func validateMeta(meta *downloadMetadata, p config.Platform) error {
 		return fmt.Errorf("response is for %s_%s, requested %s", meta.OS, meta.Arch, p)
 	case !isBareFilename(meta.Filename):
 		return fmt.Errorf("filename %q is not a bare file name", meta.Filename)
+	case meta.Filename != expected:
+		return fmt.Errorf("filename %q does not match expected %q for this tuple", meta.Filename, expected)
 	case len(meta.SigningKeys.GPGKeys) == 0:
 		return fmt.Errorf("no signing keys published")
 	}
@@ -131,12 +138,17 @@ func isBareFilename(name string) bool {
 
 // get fetches a small document with retry and returns at most
 // maxDocBytes of the body; a larger body or a non-200 status is an
-// error. Each HTTP call is one retry unit.
+// error. Each HTTP call is one retry unit. An attempt-local timeout
+// is reclassified transient — only the caller's own context ending
+// is permanent.
 func (c *Client) get(ctx context.Context, u string) ([]byte, error) {
 	var body []byte
 	err := withRetry(ctx, func() error {
 		b, err := c.getOnce(ctx, u)
 		if err != nil {
+			if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+				return fmt.Errorf("%w: %w", errAttemptTimeout, err)
+			}
 			return err
 		}
 		body = b
@@ -146,10 +158,10 @@ func (c *Client) get(ctx context.Context, u string) ([]byte, error) {
 }
 
 // getOnce is a single document fetch attempt, carrying its own
-// docTimeout on top of the caller's context.
+// document timeout on top of the caller's context.
 func (c *Client) getOnce(ctx context.Context, u string) ([]byte, error) {
 	const maxBytes = int64(maxDocBytes)
-	ctx, cancel := context.WithTimeout(ctx, docTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.docTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)

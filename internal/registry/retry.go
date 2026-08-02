@@ -43,13 +43,26 @@ func withRetry(ctx context.Context, op func() error) error {
 	return err
 }
 
+// errAttemptTimeout marks an attempt-local document timeout so it
+// retries; a caller's own context ending stays permanent.
+var errAttemptTimeout = errors.New("attempt timed out")
+
 // retryable classifies err: transport-level failures and 5xx/429
 // statuses are worth another attempt; everything else — context
-// cancellation, other 4xx (a 404 will never heal), and every
-// verification failure (retrying a signature check is flapping
-// attacker cover at best) — is permanent.
+// cancellation, transport-floor refusals, other 4xx (a 404 will
+// never heal), and every verification failure (retrying a signature
+// check is flapping attacker cover at best) — is permanent.
 func retryable(err error) bool {
+	if errors.Is(err, errAttemptTimeout) {
+		return true
+	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	// A refused redirect surfaces wrapped in *url.Error; classify it
+	// before the blanket transport branch — repeating a policy
+	// violation cannot heal it.
+	if errors.Is(err, errInsecureURL) {
 		return false
 	}
 	var se *statusError

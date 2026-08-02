@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // countingServer serves via handler, which receives the 1-based
@@ -175,4 +176,54 @@ func TestRetry(t *testing.T) {
 			t.Errorf("op calls = %d, want 1", calls)
 		}
 	})
+}
+
+func TestRetryableClassification(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"attempt-local timeout is transient", fmt.Errorf("x: %w", errAttemptTimeout), true},
+		{"caller cancellation is permanent", fmt.Errorf("x: %w", context.Canceled), false},
+		{"caller deadline is permanent", fmt.Errorf("x: %w", context.DeadlineExceeded), false},
+		{"transport-floor refusal is permanent", fmt.Errorf("x: %w", errInsecureURL), false},
+		{"checksum mismatch is permanent", fmt.Errorf("x: %w", ErrChecksumMismatch), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := retryable(tt.err); got != tt.want {
+				t.Errorf("retryable(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAttemptTimeoutRetries(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("slow then fast")
+	c, u, count := countingServer(t, func(n int64, w http.ResponseWriter) {
+		if n == 1 {
+			time.Sleep(500 * time.Millisecond)
+		}
+		_, _ = w.Write(content)
+	})
+	c.docTimeout = 100 * time.Millisecond
+
+	body, err := c.get(context.Background(), u)
+	if err != nil {
+		t.Fatalf("get() unexpected error: %v", err)
+	}
+	if !bytes.Equal(body, content) {
+		t.Errorf("body = %q, want %q", body, content)
+	}
+	if got := count.Load(); got != 2 {
+		t.Errorf("request count = %d, want 2 (attempt timeout retried)", got)
+	}
 }

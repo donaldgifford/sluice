@@ -26,9 +26,10 @@ func TestTamperedFixtures(t *testing.T) {
 	files := map[string]string{"terraform-provider-null_v3.2.4_x5": "fake binary\n"}
 
 	tests := []struct {
-		name    string
-		tamper  func(t *testing.T, f *fakeRegistry)
-		wantErr error
+		name     string
+		tamper   func(t *testing.T, f *fakeRegistry)
+		wantErr  error  // sentinel via errors.Is, if set
+		wantStep string // *Error.Step assertion, if set
 	}{
 		{
 			// SHA256SUMS.sig is a real signature by the published key
@@ -73,6 +74,45 @@ func TestTamperedFixtures(t *testing.T) {
 			},
 			wantErr: ErrSumsEntryMissing,
 		},
+		{
+			// The registry consistently signs garbage that is not a
+			// zip: signature passes, sha256 passes, and the h1 step
+			// must still fail closed and clean up its temp file.
+			name: "signed bytes that are not a valid zip",
+			tamper: func(t *testing.T, f *fakeRegistry) {
+				t.Helper()
+				f.zip = []byte("consistently signed, but not a zip archive")
+				f.shasum = sha256Hex(f.zip)
+				f.sums = []byte(f.shasum + "  " + f.zipName + "\n")
+				f.resign(t)
+			},
+			wantStep: "hash",
+		},
+		{
+			// The published key expired before verification time; the
+			// signature was made while it was valid. Default go-crypto
+			// config must reject it — this pins the nil-config
+			// strictness so a future lenient *packet.Config regresses
+			// loudly.
+			name: "sums signed by an expired published key",
+			tamper: func(t *testing.T, f *fakeRegistry) {
+				t.Helper()
+				expired, sig := newExpiredKeyAndSig(t, f.sums)
+				f.published = publishedKeys(t, expired)
+				f.sig = sig
+			},
+			wantErr: ErrSignature,
+		},
+		{
+			// An ASCII-armored signature where the binary .sig shape
+			// belongs — fails closed today, pinned as intentional.
+			name: "armored signature instead of binary",
+			tamper: func(t *testing.T, f *fakeRegistry) {
+				t.Helper()
+				f.sig = armorSig(t, f.sig)
+			},
+			wantErr: ErrSignature,
+		},
 	}
 
 	for _, tt := range tests {
@@ -85,7 +125,10 @@ func TestTamperedFixtures(t *testing.T) {
 			destDir := t.TempDir()
 			_, err := f.client.FetchVerified(context.Background(), source, version, linuxAmd64, destDir)
 
-			if !errors.Is(err, tt.wantErr) {
+			if err == nil {
+				t.Fatal("FetchVerified() error = nil, want failure")
+			}
+			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
 				t.Fatalf("FetchVerified() error = %v, want %v", err, tt.wantErr)
 			}
 			var re *Error
@@ -95,6 +138,9 @@ func TestTamperedFixtures(t *testing.T) {
 			if re.Source != source || re.Version != version || re.Platform != "linux_amd64" {
 				t.Errorf("tuple = (%s, %s, %s), want (%s, %s, linux_amd64)",
 					re.Source, re.Version, re.Platform, source, version)
+			}
+			if tt.wantStep != "" && re.Step != tt.wantStep {
+				t.Errorf("Step = %q, want %q", re.Step, tt.wantStep)
 			}
 			assertEmptyDir(t, destDir)
 		})

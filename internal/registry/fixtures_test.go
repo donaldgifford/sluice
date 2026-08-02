@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -62,6 +63,49 @@ func signDetached(t *testing.T, e *openpgp.Entity, msg []byte) []byte {
 	var buf bytes.Buffer
 	if err := openpgp.DetachSign(&buf, e, bytes.NewReader(msg), nil); err != nil {
 		t.Fatalf("signing: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// newExpiredKeyAndSig generates a key that expired an hour ago (both
+// key and signature are created on a clock two hours in the past,
+// with a one-hour key lifetime) and a signature over msg made while
+// the key was still valid. Verification with default config — real
+// time — must reject it.
+func newExpiredKeyAndSig(t *testing.T, msg []byte) (*openpgp.Entity, []byte) {
+	t.Helper()
+
+	cfg := &packet.Config{
+		Algorithm:       packet.PubKeyAlgoEdDSA,
+		Time:            func() time.Time { return time.Now().Add(-2 * time.Hour) },
+		KeyLifetimeSecs: 3600,
+	}
+	e, err := openpgp.NewEntity("expired", "sluice test", "expired@test.invalid", cfg)
+	if err != nil {
+		t.Fatalf("generating expired key: %v", err)
+	}
+	var buf bytes.Buffer
+	if err := openpgp.DetachSign(&buf, e, bytes.NewReader(msg), cfg); err != nil {
+		t.Fatalf("signing with expired key: %v", err)
+	}
+	return e, buf.Bytes()
+}
+
+// armorSig wraps a binary detached signature in ASCII armor — the
+// .asc shape, which the client deliberately does not accept.
+func armorSig(t *testing.T, sig []byte) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	w, err := armor.Encode(&buf, "PGP SIGNATURE", nil)
+	if err != nil {
+		t.Fatalf("starting sig armor: %v", err)
+	}
+	if _, err := w.Write(sig); err != nil {
+		t.Fatalf("writing sig armor: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("closing sig armor: %v", err)
 	}
 	return buf.Bytes()
 }
