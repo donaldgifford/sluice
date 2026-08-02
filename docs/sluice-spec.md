@@ -30,8 +30,9 @@ and should move into `docs/` there.
 
 ```hcl
 mirror {
-  bucket = "org-tf-mirror"
-  region = "us-east-1"
+  bucket    = "org-tf-mirror"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
 }
 
 provider "registry.terraform.io/hashicorp/aws" {
@@ -133,11 +134,11 @@ Removal is an HCL edit, reviewed like any other change:
 ## Commands
 
 ```text
-sluice validate  [-config-dir DIR | -config-file FILE]
-sluice plan      [-config-dir DIR | -config-file FILE] [-json] [-detailed-exitcode]
-sluice apply     [-config-dir DIR | -config-file FILE] [-auto-approve] [-json]
-sluice export    [-config-dir DIR | -config-file FILE] [-out FILE]
-sluice bootstrap PATH... [-out FILE]
+sluice validate  [--config-dir DIR | --config-file FILE]
+sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode]
+sluice apply     [--config-dir DIR | --config-file FILE] [--auto-approve] [--json]
+sluice export    [--config-dir DIR | --config-file FILE] [--out FILE]
+sluice bootstrap PATH... [--out FILE]
 ```
 
 ### `validate`
@@ -150,7 +151,7 @@ Reads every declared provider's `index.json` and `<version>.json` from the
 bucket, computes the diff, prints it. Never writes.
 
 Exit codes: `0` no changes · `1` error · `2` changes present
-(`-detailed-exitcode`; without the flag, 0 covers both clean and diff).
+(`--detailed-exitcode`; without the flag, 0 covers both clean and diff).
 
 Human output:
 
@@ -167,7 +168,7 @@ registry.terraform.io/cloudflare/cloudflare
 Plan: 1 to add, 1 to remove, 1 platform change.
 ```
 
-`-json` output (stable contract for the PR comment bot):
+`--json` output (stable contract for the PR comment bot):
 
 ```json
 {
@@ -193,7 +194,7 @@ Plan: 1 to add, 1 to remove, 1 platform change.
 
 ### `apply`
 
-Plan, confirm (interactive) or proceed (`-auto-approve`), execute. Per added
+Plan, confirm (interactive) or proceed (`--auto-approve`), execute. Per added
 version, per platform:
 
 1. Resolve download metadata from the origin registry API
@@ -253,7 +254,7 @@ deterministic bytes for `--check`-style diffing.
 
 One-time rollout helper. Walks PATH(s) for `.terraform.lock.hcl` files and emits
 seed HCL covering every provider/version currently in use, grouped by namespace,
-sorted, deduplicated. Output goes to stdout or `-out`. Constraint info in lock
+sorted, deduplicated. Output goes to stdout or `--out`. Constraint info in lock
 files is ignored — lock files record exact versions, which is exactly what
 sluice wants.
 
@@ -321,7 +322,7 @@ provider_installation {
 | ---- | --------------------------------------------- |
 | 0    | Success / no changes                          |
 | 1    | Error (validation, network, verification, S3) |
-| 2    | `plan -detailed-exitcode`: changes present    |
+| 2    | `plan --detailed-exitcode`: changes present   |
 | 3    | `apply`: conditional-write conflict — re-plan |
 
 ---

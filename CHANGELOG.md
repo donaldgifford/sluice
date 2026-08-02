@@ -11,6 +11,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(config)* Add HCL loader with merged-body semantics
 - *(config)* Reject duplicate provider labels across merged files
 - *(config)* Implement the full semantic validation rule set
+- *(cli)* Wire the cobra command tree with validate end to end
 
 ### Documentation
 

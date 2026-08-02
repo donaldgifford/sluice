@@ -96,7 +96,7 @@ into.
 - [x] `internal/config` schema types: `mirror` block (`bucket`, `region`,
       `platforms`) and `provider` blocks (label = full source address,
       `versions`, optional `platforms` override).
-- [ ] Loader: `--config-dir` via hclkit `LoadDir` with `MergeAppend` (top-level
+- [x] Loader: `--config-dir` via hclkit `LoadDir` with `MergeAppend` (top-level
       `*.hcl` merged as HCL bodies; an empty directory errors for free) and
       `--config-file` via `LoadFile`; the two flags mutually exclusive with a
       clear usage error.
@@ -113,7 +113,7 @@ into.
         `darwin_arm64`, ...), one place in code to extend;
   - [x] empty `versions` list is an error (removing a provider = deleting its
         block).
-- [ ] cobra command tree: root plus the five subcommands, pflag double-dash flag
+- [x] cobra command tree: root plus the five subcommands, pflag double-dash flag
       surface (`--config-dir`, `--auto-approve`, ...); update the spec's
       single-dash flag examples to match; `validate` wired end to end with exit
       0/1.
