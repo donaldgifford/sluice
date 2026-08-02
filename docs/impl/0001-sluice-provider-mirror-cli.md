@@ -136,7 +136,7 @@ the policy repo's data contract, so its bytes are frozen here.
 
 #### Tasks
 
-- [ ] `internal/mirror`: network-mirror protocol types (`index.json`,
+- [x] `internal/mirror`: network-mirror protocol types (`index.json`,
       `<version>.json`) and desired-state expansion into (provider, version,
       platform) tuples, honoring per-provider `platforms` overrides.
 - [ ] Diff engine: pure struct-in/struct-out producing exactly `add-version`,

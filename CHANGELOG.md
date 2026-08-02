@@ -13,6 +13,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(config)* Implement the full semantic validation rule set
 - *(cli)* Wire the cobra command tree with validate end to end
 - *(config)* Close Phase 1 with style-review fixes and rule-table audit
+- *(mirror)* Add protocol types and desired-state expansion
 
 ### Documentation
 
