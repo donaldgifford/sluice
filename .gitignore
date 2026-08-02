@@ -11,7 +11,7 @@ coverage.html
 # Build output
 /dist/
 /bin/
-/${project_name}
+/sluice
 
 # IDE
 .vscode/

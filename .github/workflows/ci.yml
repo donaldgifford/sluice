@@ -64,7 +64,7 @@ jobs:
         with:
           files: coverage.out
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: donaldgifford/hclkit
+          slug: donaldgifford/sluice
         continue-on-error: true
 
   security:
@@ -119,11 +119,26 @@ jobs:
           version: "~> v2"
           args: release --snapshot --skip=publish --skip=sign --clean
 
+      # The archive name_template embeds the version, so the SBOM filename is
+      # not knowable ahead of time (e.g. sluice_v0.0.0-dev_linux_amd64.tar.gz.spdx.json
+      # for snapshots, sluice_0.1.0_linux_amd64... for tags). Resolve it by glob.
+      - name: Locate archive SBOM
+        id: sbom
+        run: |
+          shopt -s nullglob
+          files=(dist/sluice_*_linux_amd64.tar.gz.spdx.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::no linux_amd64 archive SBOM found in dist/"
+            ls -la dist/ || true
+            exit 1
+          fi
+          echo "path=${files[0]}" >>"$GITHUB_OUTPUT"
+
       - name: Scan archive SBOM
         id: scan-sbom
         uses: anchore/scan-action@v7
         with:
-          sbom: dist/hclkit_linux_amd64.tar.gz.spdx.json
+          sbom: ${{ steps.sbom.outputs.path }}
           severity-cutoff: high
           fail-build: false
           output-format: sarif

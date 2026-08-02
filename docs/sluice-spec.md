@@ -358,4 +358,5 @@ tests proving it fails closed.
 
 ## Open items
 
-- Per-provider platform overrides: keep unless it proves YAGNI.
+- Per-provider platform overrides: resolved — kept (see DESIGN-0001 Open
+  Questions).

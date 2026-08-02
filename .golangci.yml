@@ -197,6 +197,18 @@ linters:
         # Performance
         - name: string-of-int  # Uber: Use strconv, not string()
 
+    # Every .go file starts with the SPDX short-form license header, separated
+    # from the package clause by a blank line so it never becomes the package
+    # doc comment (that lives in doc.go — see CONTRIBUTING.md).
+    goheader:
+      values:
+        regexp:
+          # Single year or range, so headers don't churn every January.
+          copyright-year: '20\d{2}(-20\d{2})?'
+      template: |-
+        SPDX-License-Identifier: Apache-2.0
+        Copyright {{ copyright-year }} Donald Gifford
+
     # Resource management
     nolintlint:
       allow-unused: false

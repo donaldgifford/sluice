@@ -1,4 +1,6 @@
-// Package main is the entry point for the sluice
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Donald Gifford
+
 package main
 
 import (

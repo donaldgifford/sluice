@@ -1,9 +1,13 @@
-# git-cliff configuration for sluice root CHANGELOG.
+# git-cliff configuration for the sluice CHANGELOG.
 # https://git-cliff.org/docs/configuration
 #
-# Generated for the whole repo. The chart-only changelog is at
-# charts/sluice/cliff.toml and is invoked with
-# --include-path 'charts/**'.
+# CHANGELOG.md is generated, never hand-edited: changelog-regen.yml rewrites
+# it on every push to main, and changelog.yml fails any PR whose committed
+# CHANGELOG.md differs from `git-cliff -o CHANGELOG.md` output.
+#
+# The `header` below must stay byte-identical to what lands in CHANGELOG.md.
+# prettier would reflow it (proseWrap: always) and break the drift check, so
+# CHANGELOG.md is listed in .prettierignore.
 
 [changelog]
 header = """
