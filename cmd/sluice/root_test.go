@@ -109,7 +109,6 @@ func TestLaterPhaseCommandsAreStubbed(t *testing.T) {
 		name string
 		args []string
 	}{
-		{name: "plan", args: []string{"plan", "--config-file", "testdata/valid.hcl"}},
 		{name: "apply", args: []string{"apply", "--config-file", "testdata/valid.hcl"}},
 	}
 

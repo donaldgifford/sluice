@@ -215,7 +215,7 @@ and audited.
 - [x] `internal/publish`: S3 behind a small interface; read actual state from
       the bucket's `index.json` and `<version>.json` files; a missing index
       means an unmirrored provider (first publish), not an error.
-- [ ] `sluice plan`: human diff output; `--json` with the stable `add` /
+- [x] `sluice plan`: human diff output; `--json` with the stable `add` /
       `remove` / `add_platform` schema (golden test — this is the comment-bot
       contract); `--detailed-exitcode` (0 clean / 1 error / 2 changes); capture
       the index ETag for apply.

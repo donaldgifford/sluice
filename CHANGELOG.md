@@ -24,6 +24,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(registry)* Bounded retry with backoff and clean cancellation
 - *(registry)* FetchVerified orchestration and httptest fake registry
 - *(publish)* Bucket interface, S3 adapter, and actual-state reader
+- *(cli)* Implement sluice plan with json golden and exit contract
 
 ### Bug Fixes
 

@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newPlanCmd wires plan: flag surface now, implementation in Phase 4.
+// newPlanCmd wires plan: read actual state, diff against the
+// manifest, print. Never writes.
 func newPlanCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plan",
@@ -15,15 +16,21 @@ func newPlanCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cf := addConfigFlags(cmd)
-	cmd.Flags().Bool("json", false, "emit the machine-readable plan schema")
-	cmd.Flags().Bool("detailed-exitcode", false,
+	jsonOut := cmd.Flags().Bool("json", false, "emit the machine-readable plan schema")
+	detailed := cmd.Flags().Bool("detailed-exitcode", false,
 		"exit 2 when changes are present (0 clean, 1 error)")
 
-	cmd.RunE = func(_ *cobra.Command, _ []string) error {
-		if _, err := cf.load(); err != nil {
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
+		m, err := cf.load()
+		if err != nil {
 			return err
 		}
-		return errNotImplemented("plan", "Phase 4")
+		b, err := newBucket(cmd.Context(), m)
+		if err != nil {
+			return err
+		}
+		return runPlan(cmd.Context(), m, b,
+			planOpts{jsonOut: *jsonOut, detailed: *detailed}, cmd.OutOrStdout())
 	}
 	return cmd
 }
