@@ -139,10 +139,10 @@ the policy repo's data contract, so its bytes are frozen here.
 - [x] `internal/mirror`: network-mirror protocol types (`index.json`,
       `<version>.json`) and desired-state expansion into (provider, version,
       platform) tuples, honoring per-provider `platforms` overrides.
-- [ ] Diff engine: pure struct-in/struct-out producing exactly `add-version`,
+- [x] Diff engine: pure struct-in/struct-out producing exactly `add-version`,
       `remove-version`, `add-platform`; deterministic action ordering so output
       is stable.
-- [ ] Table-driven diff tests: each action type, combinations, the empty plan,
+- [x] Table-driven diff tests: each action type, combinations, the empty plan,
       platform overrides, and full-provider removal (deleted block → all
       versions removed).
 - [ ] `sluice export`: canonical JSON projection

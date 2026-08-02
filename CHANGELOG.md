@@ -14,6 +14,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(cli)* Wire the cobra command tree with validate end to end
 - *(config)* Close Phase 1 with style-review fixes and rule-table audit
 - *(mirror)* Add protocol types and desired-state expansion
+- *(mirror)* Add the pure diff engine with deterministic ordering
 
 ### Documentation
 
