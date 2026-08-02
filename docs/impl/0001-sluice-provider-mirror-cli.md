@@ -233,7 +233,7 @@ and audited.
       signing key ID, authorizing commit) uploaded alongside the artifact — by
       shelling out to the mise-pinned cosign binary; a missing or wrong-version
       cosign fails closed.
-- [ ] Add cosign to `mise.toml` (with a `# renovate:` annotation) and CI.
+- [x] Add cosign to `mise.toml` (with a `# renovate:` annotation) and CI.
 - [ ] Structured `slog` JSON audit line per publish/retract (action, provider,
       version, platform, `h1:`, `sha256`, `signing_key_id`, `s3_version_id`);
       schema asserted in tests.

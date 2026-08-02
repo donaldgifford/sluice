@@ -44,6 +44,8 @@ jq = "latest"
 golangci-lint = "2.11.4"
 
 # Security
+# renovate: datasource=github-releases depName=sigstore/cosign
+cosign = "2.6.1"
 # renovate: datasource=github-releases depName=anchore/syft
 syft = "latest"
 # renovate: datasource=go depName=golang.org/x/vuln
