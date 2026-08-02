@@ -111,7 +111,6 @@ func TestLaterPhaseCommandsAreStubbed(t *testing.T) {
 	}{
 		{name: "plan", args: []string{"plan", "--config-file", "testdata/valid.hcl"}},
 		{name: "apply", args: []string{"apply", "--config-file", "testdata/valid.hcl"}},
-		{name: "bootstrap", args: []string{"bootstrap", "."}},
 	}
 
 	for _, tt := range tests {
@@ -174,5 +173,26 @@ func TestExportCommandOutFile(t *testing.T) {
 	}
 	if !strings.Contains(string(data), `"registry.terraform.io/hashicorp/aws"`) {
 		t.Fatalf("--out content = %q, missing the provider key", data)
+	}
+}
+
+func TestBootstrapValidateRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	// The Phase 2 success criterion, end to end at the command layer:
+	// bootstrap output piped into validate exits clean.
+	manifest := filepath.Join(t.TempDir(), "manifest.hcl")
+	if _, err := execute(t,
+		"bootstrap", "../../internal/bootstrap/testdata/tree", "--out", manifest,
+	); err != nil {
+		t.Fatalf("bootstrap: unexpected error: %v", err)
+	}
+
+	out, err := execute(t, "validate", "--config-file", manifest)
+	if err != nil {
+		t.Fatalf("validate on bootstrap output: %v", err)
+	}
+	if !strings.Contains(out, "Valid: 3 provider(s)") {
+		t.Fatalf("validate output = %q, want the 3 seeded providers", out)
 	}
 }

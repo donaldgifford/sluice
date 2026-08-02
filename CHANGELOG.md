@@ -16,6 +16,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(mirror)* Add protocol types and desired-state expansion
 - *(mirror)* Add the pure diff engine with deterministic ordering
 - *(export)* Emit the canonical JSON projection of the approved set
+- *(bootstrap)* Seed a validating manifest from fleet lock files
 
 ### Documentation
 

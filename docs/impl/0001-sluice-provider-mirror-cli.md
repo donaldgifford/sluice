@@ -148,13 +148,13 @@ the policy repo's data contract, so its bytes are frozen here.
 - [x] `sluice export`: canonical JSON projection
       (`{"providers": {"<addr>": ["<version>", ...]}}`) — sorted keys, sorted
       versions, deterministic bytes; golden tests; no network, no side effects.
-- [ ] `sluice bootstrap PATH... [--out FILE]`: walk for `.terraform.lock.hcl`,
+- [x] `sluice bootstrap PATH... [--out FILE]`: walk for `.terraform.lock.hcl`,
       collect provider/version pairs, dedupe, group by namespace, sort;
       constraint info ignored (lock files record exact versions). Manifest bytes
       emitted via `hcl/v2/hclwrite` — hclkit v0.1.0 has no write path.
-- [ ] Bootstrap fixture tree: nested directories, repeated providers across
+- [x] Bootstrap fixture tree: nested directories, repeated providers across
       repos, a lock file with multiple providers.
-- [ ] Round-trip test: `bootstrap` output piped into `validate` exits 0.
+- [x] Round-trip test: `bootstrap` output piped into `validate` exits 0.
 
 #### Success Criteria
 

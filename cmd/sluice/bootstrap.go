@@ -4,20 +4,37 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
+
+	"github.com/donaldgifford/sluice/internal/bootstrap"
 )
 
-// newBootstrapCmd wires bootstrap: flag surface now, implementation in Phase 2.
+// newBootstrapCmd wires bootstrap: seed a manifest from the lock
+// files under the given paths, to stdout or --out.
 func newBootstrapCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bootstrap PATH...",
 		Short: "Seed a manifest from the lock files under the given paths",
 		Args:  cobra.MinimumNArgs(1),
 	}
-	cmd.Flags().String("out", "", "write the manifest to a file instead of stdout")
+	out := cmd.Flags().String("out", "", "write the manifest to a file instead of stdout")
 
-	cmd.RunE = func(_ *cobra.Command, _ []string) error {
-		return errNotImplemented("bootstrap", "Phase 2")
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		data, err := bootstrap.Generate(args)
+		if err != nil {
+			return err
+		}
+		if *out != "" {
+			if err := os.WriteFile(*out, data, 0o644); err != nil {
+				return fmt.Errorf("writing %s: %w", *out, err)
+			}
+			return nil
+		}
+		_, err = cmd.OutOrStdout().Write(data)
+		return err
 	}
 	return cmd
 }

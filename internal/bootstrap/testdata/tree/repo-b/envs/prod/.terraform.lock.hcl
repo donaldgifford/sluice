@@ -1,0 +1,4 @@
+provider "registry.terraform.io/hashicorp/aws" {
+  version     = "6.2.0"
+  constraints = "~> 6.0"
+}
