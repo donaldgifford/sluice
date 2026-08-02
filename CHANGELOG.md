@@ -19,6 +19,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(bootstrap)* Seed a validating manifest from fleet lock files
 - *(hash)* H1 provider zip hashing via dirhash
 - *(registry)* Client scaffolding and download metadata resolution
+- *(registry)* GPG verification of SHA256SUMS and strict sums parsing
 
 ### Refactor
 

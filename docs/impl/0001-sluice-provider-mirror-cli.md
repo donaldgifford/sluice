@@ -178,7 +178,7 @@ tampered-fixture suite is the proof it fails closed.
       (`/v1/providers/{ns}/{type}/{version}/download/{os}/{arch}`): zip URL,
       filename, `SHA256SUMS`, `SHA256SUMS.sig`, publisher signing keys —
       protocol-generic so `registry.opentofu.org` addresses work identically.
-- [ ] GPG signature verification over `SHA256SUMS` against the
+- [x] GPG signature verification over `SHA256SUMS` against the
       registry-published keys (`ProtonMail/go-crypto` openpgp).
 - [ ] Zip download (streamed to a temp file, size-bounded, context-aware) and
       SHA-256 verification against the signed sums entry.
