@@ -91,7 +91,7 @@ into.
 
 #### Tasks
 
-- [ ] Add `hclkit` v0.1.0 and `cobra` — the first entries in `go.mod`
+- [x] Add `hclkit` v0.1.0 and `cobra` — the first entries in `go.mod`
       (`go mod tidy`).
 - [ ] `internal/config` schema types: `mirror` block (`bucket`, `region`,
       `platforms`) and `provider` blocks (label = full source address,
