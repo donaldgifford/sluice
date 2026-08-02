@@ -8,6 +8,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Features
 
 - *(config)* Add manifest model and curated platform matrix
+- *(config)* Add HCL loader with merged-body semantics
 
 ### Documentation
 
