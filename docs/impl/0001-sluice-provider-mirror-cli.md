@@ -212,7 +212,7 @@ and audited.
 
 #### Tasks
 
-- [ ] `internal/publish`: S3 behind a small interface; read actual state from
+- [x] `internal/publish`: S3 behind a small interface; read actual state from
       the bucket's `index.json` and `<version>.json` files; a missing index
       means an unmirrored provider (first publish), not an error.
 - [ ] `sluice plan`: human diff output; `--json` with the stable `add` /

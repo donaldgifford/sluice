@@ -23,6 +23,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(registry)* Streamed size-bounded zip download with SHA-256 verify
 - *(registry)* Bounded retry with backoff and clean cancellation
 - *(registry)* FetchVerified orchestration and httptest fake registry
+- *(publish)* Bucket interface, S3 adapter, and actual-state reader
 
 ### Bug Fixes
 
