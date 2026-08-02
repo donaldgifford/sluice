@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newApplyCmd wires apply: flag surface now, implementation in Phase 4.
 func newApplyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",

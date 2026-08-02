@@ -117,7 +117,7 @@ into.
       surface (`--config-dir`, `--auto-approve`, ...); update the spec's
       single-dash flag examples to match; `validate` wired end to end with exit
       0/1.
-- [ ] Table-driven tests: every validation rule has at least one passing and one
+- [x] Table-driven tests: every validation rule has at least one passing and one
       failing case; error text asserted.
 
 #### Success Criteria

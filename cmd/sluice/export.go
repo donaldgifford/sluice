@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newExportCmd wires export: flag surface now, implementation in Phase 2.
 func newExportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",

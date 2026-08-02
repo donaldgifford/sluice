@@ -5,9 +5,10 @@ package config
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
-	goversion "github.com/hashicorp/go-version"
+	version "github.com/hashicorp/go-version"
 )
 
 // ValidationError reports semantic rule violations found after a
@@ -72,19 +73,20 @@ func buildManifest(raw *manifestHCL) (*Manifest, error) {
 			is.add(subject, fmt.Sprintf(
 				"invalid source address %q: want %q, e.g. %q",
 				p.Source, "hostname/namespace/type", "registry.terraform.io/hashicorp/aws"))
-		} else {
-			// MergeAppend erases file boundaries, so a label declared
-			// in two files arrives here as two blocks. The normalized
-			// label is the identity; a repeat is always an error.
-			if _, dup := seen[source]; dup {
-				is.add(subject,
-					"declared more than once across the config; merge is explicit, "+
-						"never a silent union — consolidate into one block")
-				continue
-			}
-			seen[source] = struct{}{}
+			providers = append(providers, buildProvider(p, source, mirror.Platforms, &is))
+			continue
 		}
 
+		// MergeAppend erases file boundaries, so a label declared in
+		// two files arrives here as two blocks. The normalized label
+		// is the identity; a repeat is always an error.
+		if _, dup := seen[source]; dup {
+			is.add(subject,
+				"declared more than once across the config; merge is explicit, "+
+					"never a silent union — consolidate into one block")
+			continue
+		}
+		seen[source] = struct{}{}
 		providers = append(providers, buildProvider(p, source, mirror.Platforms, &is))
 	}
 
@@ -111,7 +113,10 @@ func buildProvider(raw providerHCL, source string, inherited []Platform, is *iss
 		source = raw.Source
 	}
 
-	platforms := inherited
+	// Clone so no provider shares backing storage with the mirror
+	// matrix or a sibling — an in-place sort downstream must never
+	// corrupt them.
+	platforms := slices.Clone(inherited)
 	if raw.Platforms != nil {
 		if len(raw.Platforms) == 0 {
 			is.add(subject, "platforms override must not be empty; omit the attribute to inherit mirror.platforms")
@@ -190,9 +195,9 @@ func normalizeVersions(subject string, raws []string, is *issues) []string {
 			continue
 		}
 
-		v, err := goversion.NewVersion(s)
+		v, err := version.NewVersion(s)
 		if err != nil {
-			if _, cerr := goversion.NewConstraint(s); cerr == nil {
+			if _, cerr := version.NewConstraint(s); cerr == nil {
 				is.add(subject, fmt.Sprintf(
 					"versions[%d] %q: version constraints are not supported — sluice "+
 						"publishes exact version sets and never resolves; pin the exact version",

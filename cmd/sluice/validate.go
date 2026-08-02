@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newValidateCmd wires validate: parse and schema-check, no network.
 func newValidateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate",

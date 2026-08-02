@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newPlanCmd wires plan: flag surface now, implementation in Phase 4.
 func newPlanCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plan",

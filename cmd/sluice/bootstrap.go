@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newBootstrapCmd wires bootstrap: flag surface now, implementation in Phase 2.
 func newBootstrapCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bootstrap PATH...",

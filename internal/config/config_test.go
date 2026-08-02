@@ -127,3 +127,23 @@ func TestValidationErrorOneLinePerIssue(t *testing.T) {
 		t.Fatalf("Error() = %q, want %q", err.Error(), want)
 	}
 }
+
+func TestInheritedPlatformsDoNotAliasMirror(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`
+	m, err := loadBytes("test.hcl", []byte(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Mutating a provider's inherited platforms must not corrupt the
+	// mirror matrix (or siblings) through shared backing storage.
+	m.Providers[0].Platforms[0] = Platform{OS: "plan9", Arch: "mips"}
+	if m.Mirror.Platforms[0] == m.Providers[0].Platforms[0] {
+		t.Fatal("Provider.Platforms shares backing storage with Mirror.Platforms")
+	}
+}
