@@ -27,6 +27,8 @@ prettier = "3.7.4"
 git-cliff = "latest"
 # renovate: datasource=github-releases depName=rhysd/actionlint
 actionlint = "latest"
+# renovate: datasource=github-releases depName=koalaman/shellcheck
+shellcheck = "latest"
 # renovate: datasource=github-releases depName=casey/just
 just = "latest"
 

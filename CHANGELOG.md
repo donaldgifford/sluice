@@ -55,4 +55,5 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 - *(dependabot)* Initialize dependabot
 - Consolidate markdownlint config, prune stale scaffold refs
+- Lint shell scripts as part of just lint
 

@@ -47,7 +47,9 @@ The load-bearing targets:
 - `just test-coverage` + `just coverage-gate` — coverage profile, then the
   per-package `internal/` floor check CI enforces.
 - `just lint` / `just fmt` — every linter / formatter (Go, YAML, Markdown,
-  Actions).
+  Actions, shell).
+- `just e2e terraform` / `just e2e tofu` — the init oracle: apply to LocalStack,
+  then a real `init` in a container whose only provider source is that mirror.
 - `just changelog` — regenerate `CHANGELOG.md`; `just changelog-check` mirrors
   CI's drift check.
 - `just check` — pre-commit gate (lint + test).
