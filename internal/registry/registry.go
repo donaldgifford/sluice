@@ -127,56 +127,89 @@ type Artifact struct {
 	// SigningKeyID is the upper-hex primary key ID of the
 	// registry-published key that verified SHA256SUMS.
 	SigningKeyID string
+	// SigningKeyExpired records that SHA256SUMS verified only because
+	// the provider opted into AllowExpiredSigningKey. Callers should
+	// say so out loud.
+	SigningKeyExpired bool
+}
+
+// FetchRequest is one verified fetch: which tuple to fetch, where to
+// stage it, and the per-provider verification policy that applies to
+// it. Policy travels with the request so no caller can enable a
+// relaxation for a provider that did not ask for it.
+type FetchRequest struct {
+	Source   string // "hostname/namespace/type"
+	Version  string
+	Platform config.Platform
+	// DestDir must exist and should be private (0700).
+	DestDir string
+
+	// RefreshedSigningKeys are armored exports of signing keys that
+	// replace the registry's copy when the primary-key fingerprint
+	// matches. Registries embed a key export and do not always re-cut
+	// it when the owner extends the key, so their copy can report an
+	// expiry the real key material moved past. Fingerprint matching
+	// means this refreshes metadata for keys the registry already
+	// names; it cannot introduce a key the registry did not publish.
+	RefreshedSigningKeys []string
+
+	// AllowExpiredSigningKey accepts SHA256SUMS signed by a
+	// registry-published key that has since expired, provided the key
+	// was valid at signing time and is not revoked now. Off unless the
+	// provider block declares it. Prefer RefreshedSigningKeys: an
+	// extended key verifies strictly, with nothing relaxed.
+	AllowExpiredSigningKey bool
 }
 
 // FetchVerified runs the full verification chain for one (provider,
 // version, platform) tuple: metadata → GPG-verified sums → streamed
 // zip download with SHA-256 → "h1:" dirhash — and renames the zip
-// into destDir only after every check passes. On any error nothing is
-// staged. destDir must exist and should be private (0700): the
+// into req.DestDir only after every check passes. On any error nothing
+// is staged. DestDir must exist and should be private (0700): the
 // verify-then-stage handoff assumes nothing else writes to it. The
 // temp file lives inside it so the final rename is atomic.
-func (c *Client) FetchVerified(ctx context.Context, source, version string, platform config.Platform, destDir string) (*Artifact, error) {
-	pstr := platform.String()
-	addr, err := parseSource(source)
+func (c *Client) FetchVerified(ctx context.Context, req *FetchRequest) (*Artifact, error) {
+	pstr := req.Platform.String()
+	addr, err := parseSource(req.Source)
 	if err != nil {
-		return nil, &Error{Source: source, Version: version, Platform: pstr, Step: "metadata", Err: err}
+		return nil, &Error{Source: req.Source, Version: req.Version, Platform: pstr, Step: "metadata", Err: err}
 	}
 
-	meta, err := c.downloadMeta(ctx, addr, version, platform)
+	meta, err := c.downloadMeta(ctx, addr, req.Version, req.Platform)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "metadata", err)
+		return nil, fail(addr, req.Version, pstr, "metadata", err)
 	}
 
 	sums, err := c.get(ctx, meta.ShasumsURL)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "sums", fmt.Errorf("fetching SHA256SUMS: %w", err))
+		return nil, fail(addr, req.Version, pstr, "sums", fmt.Errorf("fetching SHA256SUMS: %w", err))
 	}
 	sig, err := c.get(ctx, meta.ShasumsSignatureURL)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "signature", fmt.Errorf("fetching SHA256SUMS.sig: %w", err))
+		return nil, fail(addr, req.Version, pstr, "signature", fmt.Errorf("fetching SHA256SUMS.sig: %w", err))
 	}
 
-	keyID, err := verifySums(meta.SigningKeys.GPGKeys, sums, sig)
+	keyID, expired, err := verifySums(
+		meta.SigningKeys.GPGKeys, sums, sig, req.RefreshedSigningKeys, req.AllowExpiredSigningKey)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "signature", err)
+		return nil, fail(addr, req.Version, pstr, "signature", err)
 	}
 
 	wantHex, err := sumsEntry(sums, meta.Filename)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "sums", err)
+		return nil, fail(addr, req.Version, pstr, "sums", err)
 	}
 	// The signed sums are the trust root, but a registry whose
 	// metadata shasum contradicts them is an incident to surface,
 	// not to paper over.
 	if meta.Shasum != "" && meta.Shasum != wantHex {
-		return nil, fail(addr, version, pstr, "sums",
+		return nil, fail(addr, req.Version, pstr, "sums",
 			fmt.Errorf("metadata shasum %s contradicts signed sums entry %s", meta.Shasum, wantHex))
 	}
 
-	tempPath, err := c.fetchZipRetry(ctx, meta.DownloadURL, wantHex, destDir, meta.Filename)
+	tempPath, err := c.fetchZipRetry(ctx, meta.DownloadURL, wantHex, req.DestDir, meta.Filename)
 	if err != nil {
-		return nil, fail(addr, version, pstr, "download", err)
+		return nil, fail(addr, req.Version, pstr, "download", err)
 	}
 
 	h1, err := hash.Zip(tempPath)
@@ -184,23 +217,24 @@ func (c *Client) FetchVerified(ctx context.Context, source, version string, plat
 		if rerr := os.Remove(tempPath); rerr != nil {
 			err = errors.Join(err, rerr)
 		}
-		return nil, fail(addr, version, pstr, "hash", err)
+		return nil, fail(addr, req.Version, pstr, "hash", err)
 	}
 
-	finalPath := filepath.Join(destDir, meta.Filename)
+	finalPath := filepath.Join(req.DestDir, meta.Filename)
 	if err := stageZip(tempPath, finalPath); err != nil {
-		return nil, fail(addr, version, pstr, "download", err)
+		return nil, fail(addr, req.Version, pstr, "download", err)
 	}
 
 	return &Artifact{
-		Source:       addr.String(),
-		Version:      version,
-		Platform:     platform,
-		Path:         finalPath,
-		Filename:     meta.Filename,
-		SHA256:       wantHex,
-		H1:           h1,
-		SigningKeyID: keyID,
+		Source:            addr.String(),
+		Version:           req.Version,
+		Platform:          req.Platform,
+		Path:              finalPath,
+		Filename:          meta.Filename,
+		SHA256:            wantHex,
+		H1:                h1,
+		SigningKeyID:      keyID,
+		SigningKeyExpired: expired,
 	}, nil
 }
 

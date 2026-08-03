@@ -25,8 +25,9 @@ import (
 // fakeFetcher stages a fake zip under the artifact naming convention
 // and returns canned crypto facts.
 type fakeFetcher struct {
-	calls []string
-	fail  bool
+	calls   []string
+	fail    bool
+	expired bool // report the signing key as expired-but-accepted
 }
 
 func (f *fakeFetcher) FetchVerified(_ context.Context, source, version string, p config.Platform, destDir string) (*registry.Artifact, error) {
@@ -41,14 +42,15 @@ func (f *fakeFetcher) FetchVerified(_ context.Context, source, version string, p
 		return nil, err
 	}
 	return &registry.Artifact{
-		Source:       source,
-		Version:      version,
-		Platform:     p,
-		Path:         path,
-		Filename:     name,
-		SHA256:       "sha-" + name,
-		H1:           "h1:" + name,
-		SigningKeyID: "34365D9472D7468F",
+		Source:            source,
+		Version:           version,
+		Platform:          p,
+		Path:              path,
+		Filename:          name,
+		SHA256:            "sha-" + name,
+		H1:                "h1:" + name,
+		SigningKeyID:      "34365D9472D7468F",
+		SigningKeyExpired: f.expired,
 	}, nil
 }
 
@@ -409,5 +411,35 @@ func TestAuditSchema(t *testing.T) {
 	}
 	if entry["s3_version_id"] == "" {
 		t.Error("s3_version_id empty on a versioned fake")
+	}
+}
+
+// An artifact accepted only under the expired-key override must say so
+// once per artifact, alongside — never instead of — its audit line.
+func TestExpiredSigningKeyWarns(t *testing.T) {
+	t.Parallel()
+
+	b := newFakeBucket()
+	a, f, logBuf := newTestApplier(t, b)
+	f.expired = true
+	desired := nullState(map[string][]string{"3.2.4": {"darwin_arm64", "linux_amd64"}})
+	plan, actual := planAgainst(t, b, desired)
+	if err := a.Apply(context.Background(), plan, actual); err != nil {
+		t.Fatalf("Apply() unexpected error: %v", err)
+	}
+
+	out := logBuf.String()
+	if got := strings.Count(out, `"msg":"upstream signing key is expired"`); got != 2 {
+		t.Errorf("warning lines = %d, want one per artifact (2)", got)
+	}
+	if !strings.Contains(out, `"level":"WARN"`) {
+		t.Error("expiry notice is not logged at WARN")
+	}
+	if !strings.Contains(out, `"signing_key_id":"34365D9472D7468F"`) {
+		t.Error("warning does not name the signing key")
+	}
+	// The publish audit trail is unchanged by the override.
+	if got := strings.Count(out, `"action":"publish"`); got != 2 {
+		t.Errorf("publish audit lines = %d, want 2", got)
 	}
 }

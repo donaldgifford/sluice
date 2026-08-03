@@ -100,6 +100,44 @@ jobs:
         env:
           SLUICE_LOCALSTACK_ENDPOINT: http://localhost:4566
 
+  e2e:
+    name: E2E (${{ matrix.tool }} init)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [terraform, tofu]
+    services:
+      localstack:
+        image: localstack/localstack:4.4
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health | grep -E '\"s3\": \"(running|available)\"'" --health-interval
+          5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up mise (just, cosign)
+        uses: jdx/mise-action@v4
+        with:
+          experimental: true
+
+      # The init oracle: a mirror sluice built itself is the only
+      # provider source, so a green init proves the whole chain.
+      - name: Run the init oracle
+        run: just e2e ${{ matrix.tool }}
+        env:
+          SLUICE_LOCALSTACK_ENDPOINT: http://localhost:4566
+          COSIGN_PASSWORD: sluice-e2e
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest

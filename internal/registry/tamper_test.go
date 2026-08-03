@@ -123,7 +123,10 @@ func TestTamperedFixtures(t *testing.T) {
 			tt.tamper(t, f)
 
 			destDir := t.TempDir()
-			_, err := f.client.FetchVerified(context.Background(), source, version, linuxAmd64, destDir)
+			_, err := f.client.FetchVerified(
+				context.Background(),
+				&FetchRequest{Source: source, Version: version, Platform: linuxAmd64, DestDir: destDir},
+			)
 
 			if err == nil {
 				t.Fatal("FetchVerified() error = nil, want failure")
@@ -167,7 +170,7 @@ func TestTamperedZipWithConsistentlyResignedSums(t *testing.T) {
 	f.sig = signDetached(t, rogue, f.sums)
 
 	destDir := t.TempDir()
-	_, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+	_, err := f.client.FetchVerified(context.Background(), &FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir})
 	if !errors.Is(err, ErrSignature) {
 		t.Fatalf("FetchVerified() error = %v, want ErrSignature", err)
 	}

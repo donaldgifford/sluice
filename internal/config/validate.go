@@ -61,7 +61,7 @@ func (is *issues) err() error {
 func buildManifest(raw *manifestHCL) (*Manifest, error) {
 	var is issues
 
-	mirror := buildMirror(raw.Mirror, &is)
+	mirror := buildMirror(&raw.Mirror, &is)
 
 	providers := make([]Provider, 0, len(raw.Providers))
 	seen := make(map[string]struct{}, len(raw.Providers))
@@ -96,14 +96,20 @@ func buildManifest(raw *manifestHCL) (*Manifest, error) {
 	return &Manifest{Mirror: mirror, Providers: providers}, nil
 }
 
-func buildMirror(raw mirrorHCL, is *issues) Mirror {
+func buildMirror(raw *mirrorHCL, is *issues) Mirror {
 	if len(raw.Platforms) == 0 {
 		is.add("mirror", "platforms must not be empty; declare the default os_arch matrix")
 	}
+	for _, f := range raw.SigningKeyFiles {
+		if strings.TrimSpace(f) == "" {
+			is.add("mirror", "signing_key_files must not contain empty paths")
+		}
+	}
 	return Mirror{
-		Bucket:    raw.Bucket,
-		Region:    raw.Region,
-		Platforms: parsePlatforms("mirror", raw.Platforms, is),
+		Bucket:          raw.Bucket,
+		Region:          raw.Region,
+		Platforms:       parsePlatforms("mirror", raw.Platforms, is),
+		SigningKeyFiles: raw.SigningKeyFiles,
 	}
 }
 
@@ -125,9 +131,10 @@ func buildProvider(raw providerHCL, source string, inherited []Platform, is *iss
 	}
 
 	return Provider{
-		Source:    source,
-		Versions:  normalizeVersions(subject, raw.Versions, is),
-		Platforms: platforms,
+		Source:                 source,
+		Versions:               normalizeVersions(subject, raw.Versions, is),
+		Platforms:              platforms,
+		AllowExpiredSigningKey: raw.AllowExpiredSigningKey,
 	}
 }
 

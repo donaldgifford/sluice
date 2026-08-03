@@ -18,7 +18,7 @@ func TestVerifySums(t *testing.T) {
 		t.Parallel()
 
 		key := newTestKey(t, "release")
-		keyID, err := verifySums(publishedKeys(t, key), sums, signDetached(t, key, sums))
+		keyID, _, err := verifySums(publishedKeys(t, key), sums, signDetached(t, key, sums), nil, false)
 		if err != nil {
 			t.Fatalf("verifySums() unexpected error: %v", err)
 		}
@@ -31,7 +31,7 @@ func TestVerifySums(t *testing.T) {
 		t.Parallel()
 
 		keyA, keyB := newTestKey(t, "old"), newTestKey(t, "rotated")
-		keyID, err := verifySums(publishedKeys(t, keyA, keyB), sums, signDetached(t, keyB, sums))
+		keyID, _, err := verifySums(publishedKeys(t, keyA, keyB), sums, signDetached(t, keyB, sums), nil, false)
 		if err != nil {
 			t.Fatalf("verifySums() unexpected error: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestVerifySums(t *testing.T) {
 
 		key := newTestKey(t, "release")
 		sig := signDetached(t, key, []byte("something else entirely\n"))
-		_, err := verifySums(publishedKeys(t, key), sums, sig)
+		_, _, err := verifySums(publishedKeys(t, key), sums, sig, nil, false)
 		if !errors.Is(err, ErrSignature) {
 			t.Fatalf("verifySums() error = %v, want ErrSignature", err)
 		}
@@ -55,7 +55,7 @@ func TestVerifySums(t *testing.T) {
 		t.Parallel()
 
 		published, rogue := newTestKey(t, "release"), newTestKey(t, "rogue")
-		_, err := verifySums(publishedKeys(t, published), sums, signDetached(t, rogue, sums))
+		_, _, err := verifySums(publishedKeys(t, published), sums, signDetached(t, rogue, sums), nil, false)
 		if !errors.Is(err, ErrSignature) {
 			t.Fatalf("verifySums() error = %v, want ErrSignature", err)
 		}
@@ -65,7 +65,7 @@ func TestVerifySums(t *testing.T) {
 		t.Parallel()
 
 		key := newTestKey(t, "release")
-		_, err := verifySums(publishedKeys(t, key), sums, []byte("not a signature"))
+		_, _, err := verifySums(publishedKeys(t, key), sums, []byte("not a signature"), nil, false)
 		if !errors.Is(err, ErrSignature) {
 			t.Fatalf("verifySums() error = %v, want ErrSignature", err)
 		}
@@ -76,7 +76,7 @@ func TestVerifySums(t *testing.T) {
 
 		key := newTestKey(t, "release")
 		keys := []gpgKey{{KeyID: "JUNK", ASCIIArmor: "not armor at all"}}
-		_, err := verifySums(keys, sums, signDetached(t, key, sums))
+		_, _, err := verifySums(keys, sums, signDetached(t, key, sums), nil, false)
 		if err == nil || !strings.Contains(err.Error(), "parsing published signing key") {
 			t.Fatalf("verifySums() error = %v, want key-parse failure", err)
 		}
@@ -86,7 +86,7 @@ func TestVerifySums(t *testing.T) {
 		t.Parallel()
 
 		key := newTestKey(t, "release")
-		_, err := verifySums(nil, sums, signDetached(t, key, sums))
+		_, _, err := verifySums(nil, sums, signDetached(t, key, sums), nil, false)
 		if err == nil || !strings.Contains(err.Error(), "no usable signing keys") {
 			t.Fatalf("verifySums() error = %v, want empty-keyring failure", err)
 		}

@@ -72,7 +72,7 @@ func TestRealRegistryWireFormat(t *testing.T) {
 				t.Errorf("shasum = %q, want %q", meta.Shasum, tt.wantSum)
 			}
 			// The armored key must actually parse into a keyring.
-			if _, err := assembleKeyring(meta.SigningKeys.GPGKeys); err != nil {
+			if _, err := assembleKeyring(meta.SigningKeys.GPGKeys, nil); err != nil {
 				t.Errorf("assembling keyring from the published key: %v", err)
 			}
 		})

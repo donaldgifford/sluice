@@ -147,3 +147,32 @@ func TestInheritedPlatformsDoNotAliasMirror(t *testing.T) {
 		t.Fatal("Provider.Platforms shares backing storage with Mirror.Platforms")
 	}
 }
+
+func TestAllowExpiredSigningKey(t *testing.T) {
+	t.Parallel()
+
+	src := header + `provider "registry.terraform.io/hashicorp/null" {
+  versions                  = ["3.2.4"]
+  allow_expired_signing_key = true
+}
+
+provider "registry.opentofu.org/hashicorp/null" {
+  versions = ["3.2.4"]
+}
+`
+	m, err := loadBytes("test.hcl", []byte(src))
+	if err != nil {
+		t.Fatalf("loadBytes() unexpected error: %v", err)
+	}
+	// Opting one provider in must not opt its neighbours in: the
+	// relaxation is per provider block, and off is the default.
+	want := map[string]bool{
+		"registry.terraform.io/hashicorp/null": true,
+		"registry.opentofu.org/hashicorp/null": false,
+	}
+	for _, p := range m.Providers {
+		if got := p.AllowExpiredSigningKey; got != want[p.Source] {
+			t.Errorf("%s: AllowExpiredSigningKey = %v, want %v", p.Source, got, want[p.Source])
+		}
+	}
+}

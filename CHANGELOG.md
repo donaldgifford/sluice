@@ -28,6 +28,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(publish)* Cosign signer with fail-closed preflight
 - *(publish)* Applier — ordered, conditional, idempotent, audited
 - *(cli)* Implement sluice apply with confirmation and full wiring
+- *(registry)* Verify against refreshed signing keys, with an expiry override
 
 ### Bug Fixes
 

@@ -91,6 +91,18 @@ func newExpiredKeyAndSig(t *testing.T, msg []byte) (*openpgp.Entity, []byte) {
 	return e, buf.Bytes()
 }
 
+// revokeKey revokes the entity's primary key as of now, leaving any
+// signature it already made intact. Models the case the expired-key
+// override must never wave through: a key whose owner has since
+// declared it compromised.
+func revokeKey(t *testing.T, e *openpgp.Entity) {
+	t.Helper()
+
+	if err := e.RevokeKey(packet.KeyCompromised, "test revocation", nil); err != nil {
+		t.Fatalf("revoking key: %v", err)
+	}
+}
+
 // armorSig wraps a binary detached signature in ASCII armor — the
 // .asc shape, which the client deliberately does not accept.
 func armorSig(t *testing.T, sig []byte) []byte {
@@ -246,4 +258,47 @@ func newFakeRegistry(t *testing.T, source, version string, plat config.Platform,
 func (f *fakeRegistry) resign(t *testing.T) {
 	t.Helper()
 	f.sig = signDetached(t, f.key, f.sums)
+}
+
+// extendKey returns a second export of e whose self-signature runs a
+// year out — the shape of an upstream key extension: re-cut
+// self-signatures, same key material, same fingerprint. e itself is
+// left untouched so callers keep the stale export to compare against.
+func extendKey(t *testing.T, e *openpgp.Entity) *openpgp.Entity {
+	t.Helper()
+
+	copied := copyEntity(t, e)
+	lifetime := uint32(365 * 24 * 3600)
+	for _, id := range copied.Identities {
+		id.SelfSignature.KeyLifetimeSecs = &lifetime
+	}
+	for i := range copied.Subkeys {
+		copied.Subkeys[i].Sig.KeyLifetimeSecs = &lifetime
+	}
+
+	var out bytes.Buffer
+	if err := copied.SerializePrivate(&out, nil); err != nil {
+		t.Fatalf("re-signing extended key: %v", err)
+	}
+	ring, err := openpgp.ReadKeyRing(&out)
+	if err != nil {
+		t.Fatalf("reading extended key: %v", err)
+	}
+	return ring[0]
+}
+
+// copyEntity round-trips the entity through its private serialization
+// without re-signing, yielding an independent copy.
+func copyEntity(t *testing.T, e *openpgp.Entity) *openpgp.Entity {
+	t.Helper()
+
+	var buf bytes.Buffer
+	if err := e.SerializePrivateWithoutSigning(&buf, nil); err != nil {
+		t.Fatalf("serializing private key: %v", err)
+	}
+	ring, err := openpgp.ReadKeyRing(&buf)
+	if err != nil {
+		t.Fatalf("re-reading key: %v", err)
+	}
+	return ring[0]
 }

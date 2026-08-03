@@ -178,6 +178,15 @@ func (a *Applier) fetchAndSign(ctx context.Context, w *providerWork, destDir str
 			if err != nil {
 				return nil, err
 			}
+			if art.SigningKeyExpired {
+				// Verified only because the provider opted in. Say so
+				// on every artifact it covers, not once per run.
+				a.log.WarnContext(ctx, "upstream signing key is expired",
+					slog.String("provider", w.source),
+					slog.String("version", art.Version),
+					slog.String("platform", art.Platform.String()),
+					slog.String("signing_key_id", art.SigningKeyID))
+			}
 			if err := a.signer.SignAndAttest(ctx, art); err != nil {
 				return nil, err
 			}

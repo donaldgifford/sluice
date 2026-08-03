@@ -44,9 +44,10 @@ type manifestHCL struct {
 }
 
 type mirrorHCL struct {
-	Bucket    string   `hcl:"bucket"`
-	Region    string   `hcl:"region"`
-	Platforms []string `hcl:"platforms"`
+	Bucket          string   `hcl:"bucket"`
+	Region          string   `hcl:"region"`
+	Platforms       []string `hcl:"platforms"`
+	SigningKeyFiles []string `hcl:"signing_key_files,optional"`
 }
 
 type providerHCL struct {
@@ -56,6 +57,8 @@ type providerHCL struct {
 	// Platforms distinguishes absent (nil: inherit the mirror matrix)
 	// from explicitly empty (non-nil zero length: a validation error).
 	Platforms []string `hcl:"platforms,optional"`
+
+	AllowExpiredSigningKey bool `hcl:"allow_expired_signing_key,optional"`
 }
 
 // load runs the one pipeline every entry point shares: decode with

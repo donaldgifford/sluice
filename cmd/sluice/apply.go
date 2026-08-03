@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/donaldgifford/sluice/internal/publish"
-	"github.com/donaldgifford/sluice/internal/registry"
 )
 
 // newApplyCmd wires apply: read → diff → confirm → fetch/verify/sign
@@ -38,9 +37,13 @@ func newApplyCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
+		fetch, err := newPolicyFetcher(m)
+		if err != nil {
+			return err
+		}
 		deps := applyDeps{
 			bucket: b,
-			fetch:  registry.New(),
+			fetch:  fetch,
 			signer: publish.NewSigner(*cosignKey, *commit),
 			log:    slog.Default(),
 		}

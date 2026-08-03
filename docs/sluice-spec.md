@@ -101,19 +101,59 @@ Removal is an HCL edit, reviewed like any other change:
 
 **`mirror` block** — exactly one across all files.
 
-| Attribute   | Type         | Required | Notes                                        |
-| ----------- | ------------ | -------- | -------------------------------------------- |
-| `bucket`    | string       | yes      | Mirror bucket name                           |
-| `region`    | string       | yes      | Bucket region (builds the REST endpoint URL) |
-| `platforms` | list(string) | yes      | Default `os_arch` matrix for all providers   |
+| Attribute           | Type         | Required | Notes                                                                |
+| ------------------- | ------------ | -------- | -------------------------------------------------------------------- |
+| `bucket`            | string       | yes      | Mirror bucket name                                                   |
+| `region`            | string       | yes      | Bucket region (builds the REST endpoint URL)                         |
+| `platforms`         | list(string) | yes      | Default `os_arch` matrix for all providers                           |
+| `signing_key_files` | list(string) | no       | Armored key exports that refresh a registry's stale copy — see below |
 
 **`provider` block** — zero or more; label is the full source address.
 
-| Attribute   | Type         | Required | Notes                                                                 |
-| ----------- | ------------ | -------- | --------------------------------------------------------------------- |
-| (label)     | string       | yes      | `hostname/namespace/type`, e.g. `registry.terraform.io/hashicorp/aws` |
-| `versions`  | list(string) | yes      | Exact versions only — never constraints (`~>` is a validation error)  |
-| `platforms` | list(string) | no       | Overrides `mirror.platforms` for this provider                        |
+| Attribute                   | Type         | Required | Notes                                                                 |
+| --------------------------- | ------------ | -------- | --------------------------------------------------------------------- |
+| (label)                     | string       | yes      | `hostname/namespace/type`, e.g. `registry.terraform.io/hashicorp/aws` |
+| `versions`                  | list(string) | yes      | Exact versions only — never constraints (`~>` is a validation error)  |
+| `platforms`                 | list(string) | no       | Overrides `mirror.platforms` for this provider                        |
+| `allow_expired_signing_key` | bool         | no       | Accept a signature whose key has since expired — see below            |
+
+### Upstream signing keys
+
+Ingest verifies `SHA256SUMS` against the GPG keys the origin registry publishes
+in its download metadata, and nothing else. Two real-world wrinkles have
+explicit handling:
+
+**Stale key exports (`mirror.signing_key_files`).** A registry embeds a copy of
+the signing key as it stood when a provider version was published, and does not
+re-cut that copy when the owner later extends the key. `registry.terraform.io`
+serves an export of HashiCorp's key `34365D9472D7468F` that expired 2026-04-18,
+while HashiCorp's own export of the **same fingerprint** runs to 2030-03-01 —
+extended, not rotated, in February 2026.
+
+Point `signing_key_files` at the current export and sluice verifies against it:
+
+```hcl
+mirror {
+  bucket            = "org-tf-mirror"
+  region            = "us-east-1"
+  platforms         = ["linux_amd64", "darwin_arm64"]
+  signing_key_files = ["keys/hashicorp.asc"] # from hashicorp.com/.well-known/pgp-key.txt
+}
+```
+
+A refreshed export replaces the registry's copy only when the **full primary
+fingerprint matches**, so it can never introduce a key the registry did not
+publish — it updates validity metadata for a key already trusted, and nothing
+about verification is relaxed. An unreadable or unparseable file is a hard
+error, never a silent fall back to the stale copy.
+
+**`allow_expired_signing_key`.** The escape hatch for a genuinely expired key
+with no refreshed export available. It accepts a signature made while the key
+was valid, and only that: a **revoked** key is still refused (revocation is
+re-checked against the present, not the signing time), as is a bad signature, an
+unknown signer, or a signature claiming a future creation time. Every artifact
+it covers logs a `WARN` naming the key. Prefer `signing_key_files` — an extended
+key verifies strictly.
 
 ### Validation rules
 

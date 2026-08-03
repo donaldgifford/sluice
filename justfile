@@ -59,6 +59,11 @@ test:
 test-pkg pkg:
     @go test -v -race {{ pkg }}
 
+# End-to-end init oracle: apply to LocalStack, then terraform/tofu init from the mirror
+[group('test')]
+e2e tool="terraform": build
+    @./scripts/e2e.sh {{ tool }}
+
 # Run integration tests (//go:build integration), which need external services
 [group('test')]
 test-integration:

@@ -118,7 +118,10 @@ func TestFetchVerified(t *testing.T) {
 
 		f := newFakeRegistry(t, "registry.terraform.io/hashicorp/null", "3.2.4", linuxAmd64, files)
 		destDir := t.TempDir()
-		a, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+		a, err := f.client.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir},
+		)
 		if err != nil {
 			t.Fatalf("FetchVerified() unexpected error: %v", err)
 		}
@@ -140,7 +143,10 @@ func TestFetchVerified(t *testing.T) {
 		f.absZipURL = cdn.URL + "/github/releases/download/v3.3.0/" + f.zipName
 
 		destDir := t.TempDir()
-		a, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+		a, err := f.client.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir},
+		)
 		if err != nil {
 			t.Fatalf("FetchVerified() unexpected error: %v", err)
 		}
@@ -156,7 +162,10 @@ func TestFetchVerified(t *testing.T) {
 		f.resign(t)
 
 		destDir := t.TempDir()
-		a, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+		a, err := f.client.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir},
+		)
 		if err != nil {
 			t.Fatalf("FetchVerified() unexpected error: %v", err)
 		}
@@ -171,7 +180,10 @@ func TestFetchVerified(t *testing.T) {
 		f.published = publishedKeys(t, older, f.key) // signer is key 2 of 2
 
 		destDir := t.TempDir()
-		a, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+		a, err := f.client.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir},
+		)
 		if err != nil {
 			t.Fatalf("FetchVerified() unexpected error: %v", err)
 		}
@@ -185,7 +197,10 @@ func TestFetchVerified(t *testing.T) {
 		f.shasum = strings.Repeat("ef", 32)
 
 		destDir := t.TempDir()
-		_, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+		_, err := f.client.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir},
+		)
 		if err == nil || !strings.Contains(err.Error(), "contradicts signed sums entry") {
 			t.Fatalf("FetchVerified() error = %v, want self-consistency failure", err)
 		}
@@ -196,7 +211,10 @@ func TestFetchVerified(t *testing.T) {
 		t.Parallel()
 
 		c := New()
-		_, err := c.FetchVerified(context.Background(), "not-an-address", "1.0.0", linuxAmd64, t.TempDir())
+		_, err := c.FetchVerified(
+			context.Background(),
+			&FetchRequest{Source: "not-an-address", Version: "1.0.0", Platform: linuxAmd64, DestDir: t.TempDir()},
+		)
 		var re *Error
 		if !errors.As(err, &re) || re.Source != "not-an-address" || re.Step != "metadata" {
 			t.Fatalf("FetchVerified() error = %v, want *Error with step metadata", err)
@@ -296,7 +314,7 @@ func TestFetchVerifiedRefusesToClobberStagedFile(t *testing.T) {
 		t.Fatalf("pre-staging: %v", err)
 	}
 
-	_, err := f.client.FetchVerified(context.Background(), f.source, f.version, f.plat, destDir)
+	_, err := f.client.FetchVerified(context.Background(), &FetchRequest{Source: f.source, Version: f.version, Platform: f.plat, DestDir: destDir})
 	if err == nil || !strings.Contains(err.Error(), "refusing to overwrite") {
 		t.Fatalf("FetchVerified() error = %v, want overwrite refusal", err)
 	}
