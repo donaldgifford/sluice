@@ -284,6 +284,14 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 - Spec and implementation agree — no documented flag, exit code, or output
   format differs from behavior.
 
+**Status (2026-08-03):** every task above is complete and the second and third
+criteria are verified. The first is verified locally only — `just e2e terraform`
+and `just e2e tofu` both install the HashiCorp and OpenTofu canaries entirely
+from a sluice-built mirror, against live registries and LocalStack. The CI jobs
+(`integration`, `e2e`) are wired in `.github/workflows/ci.yml` and actionlint
+passes, but this branch has not been pushed, so they have never executed on a
+runner. Push the branch to close the criterion.
+
 ---
 
 ## File Changes
