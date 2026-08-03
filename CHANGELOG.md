@@ -47,6 +47,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - Green the markdown lint baseline
 - Rewrite the README around real commands and close the Phase 5 audit
 - *(impl)* Record Phase 5 status and the one unverified criterion
+- *(impl)* Record Phase 5 verified green in CI
 
 ### Testing
 

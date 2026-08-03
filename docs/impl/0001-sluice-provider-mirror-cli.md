@@ -284,13 +284,18 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 - Spec and implementation agree — no documented flag, exit code, or output
   format differs from behavior.
 
-**Status (2026-08-03):** every task above is complete and the second and third
-criteria are verified. The first is verified locally only — `just e2e terraform`
-and `just e2e tofu` both install the HashiCorp and OpenTofu canaries entirely
-from a sluice-built mirror, against live registries and LocalStack. The CI jobs
-(`integration`, `e2e`) are wired in `.github/workflows/ci.yml` and actionlint
-passes, but this branch has not been pushed, so they have never executed on a
-runner. Push the branch to close the criterion.
+**Status (2026-08-03):** all three criteria met. Verified on GitHub Actions run
+[30816469681](https://github.com/donaldgifford/sluice/actions/runs/30816469681)
+(PR #1) — every job green, including `Integration Test`, `E2E (terraform init)`,
+and `E2E (tofu init)`. Both e2e jobs installed the `registry.terraform.io` and
+`registry.opentofu.org` canaries entirely from a sluice-built mirror, from a
+fresh `init` against an exclusive `network_mirror`. `just ci` is green locally,
+and the spec cross-check is done.
+
+One pre-existing failure is unrelated to this work and remains open:
+`trufflehog.yml` references `trufflesecurity/trufflehog@v3`, a tag that does not
+exist, so the job errors before scanning. It is untouched by this branch and
+needs its own fix.
 
 ---
 
