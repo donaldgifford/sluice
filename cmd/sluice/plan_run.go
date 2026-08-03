@@ -52,15 +52,13 @@ func runPlan(ctx context.Context, m *config.Manifest, b publish.Bucket, opts pla
 		return err
 	}
 
-	var rendered string
+	rendered := renderPlan(plan, actual.State)
 	if opts.jsonOut {
 		data, err := json.MarshalIndent(plan, "", "  ")
 		if err != nil {
 			return fmt.Errorf("encoding plan: %w", err)
 		}
 		rendered = string(data) + "\n"
-	} else {
-		rendered = renderPlan(plan, actual.State)
 	}
 	if _, err := io.WriteString(out, rendered); err != nil {
 		return err

@@ -365,9 +365,7 @@ func TestApplyEmptyPlanIsNoOp(t *testing.T) {
 
 	b := newFakeBucket()
 	a, ff, _ := newTestApplier(t, b)
-	if err := a.Apply(context.Background(), &mirror.Plan{
-		Add: []mirror.VersionChange{}, Remove: []mirror.VersionRef{}, AddPlatform: []mirror.VersionChange{},
-	}, &Actual{}); err != nil {
+	if err := a.Apply(context.Background(), &mirror.Plan{}, &Actual{}); err != nil {
 		t.Fatalf("Apply() unexpected error: %v", err)
 	}
 	if len(ff.calls) != 0 || len(b.ops) != 0 {

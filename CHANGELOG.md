@@ -37,6 +37,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Refactor
 
 - *(cli)* Close Phase 2 with style-review fixes
+- Close Phase 4 with style-review fixes
 
 ### Documentation
 
