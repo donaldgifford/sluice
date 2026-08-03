@@ -110,7 +110,7 @@ func armorSig(t *testing.T, sig []byte) []byte {
 	return buf.Bytes()
 }
 
-// publishedKeys renders entities as the gpg_keys slice from download
+// publishedKeys renders entities as the gpg_public_keys slice from download
 // metadata.
 func publishedKeys(t *testing.T, entities ...*openpgp.Entity) []gpgKey {
 	t.Helper()
@@ -214,7 +214,7 @@ func newFakeRegistry(t *testing.T, source, version string, plat config.Platform,
 				"os":                    r.PathValue("os"),
 				"arch":                  r.PathValue("arch"),
 				"shasum":                f.shasum,
-				"signing_keys":          map[string]any{"gpg_keys": f.published},
+				"signing_keys":          map[string]any{"gpg_public_keys": f.published},
 			})
 			if err != nil {
 				t.Errorf("marshaling metadata: %v", err)

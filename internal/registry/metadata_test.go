@@ -29,7 +29,7 @@ func metaBody(t *testing.T, overrides map[string]any) string {
 		"arch":                  "amd64",
 		"shasum":                strings.Repeat("ab", 32),
 		"signing_keys": map[string]any{
-			"gpg_keys": []map[string]any{
+			"gpg_public_keys": []map[string]any{
 				{"key_id": "34365D9472D7468F", "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"},
 			},
 		},
@@ -163,10 +163,10 @@ func TestDownloadMetaValidation(t *testing.T) {
 		{"filename with slash", map[string]any{"filename": "../../etc/evil.zip"}, "not a bare file name"},
 		{"filename with backslash", map[string]any{"filename": `..\evil.zip`}, "not a bare file name"},
 		{"filename dot dot", map[string]any{"filename": ".."}, "not a bare file name"},
-		{"no signing keys", map[string]any{"signing_keys": map[string]any{"gpg_keys": []map[string]any{}}}, "no signing keys"},
+		{"no signing keys", map[string]any{"signing_keys": map[string]any{"gpg_public_keys": []map[string]any{}}}, "no signing keys"},
 		{
 			"empty ascii_armor",
-			map[string]any{"signing_keys": map[string]any{"gpg_keys": []map[string]any{{"key_id": "AA", "ascii_armor": "  "}}}},
+			map[string]any{"signing_keys": map[string]any{"gpg_public_keys": []map[string]any{{"key_id": "AA", "ascii_armor": "  "}}}},
 			"empty ascii_armor",
 		},
 	}

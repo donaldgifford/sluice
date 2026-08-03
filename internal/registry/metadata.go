@@ -35,7 +35,9 @@ type downloadMetadata struct {
 	Arch                string `json:"arch"`
 	Shasum              string `json:"shasum"`
 	SigningKeys         struct {
-		GPGKeys []gpgKey `json:"gpg_keys"`
+		// Both registry.terraform.io and registry.opentofu.org name
+		// this gpg_public_keys — verified against live responses.
+		GPGKeys []gpgKey `json:"gpg_public_keys"`
 	} `json:"signing_keys"`
 }
 
