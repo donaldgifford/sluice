@@ -105,7 +105,7 @@ func (s *Signer) Preflight(ctx context.Context) error {
 // artifact can never reach the bucket.
 func (s *Signer) SignAndAttest(ctx context.Context, art *registry.Artifact) error {
 	if s.bin == "" {
-		return fmt.Errorf("signer used before Preflight")
+		return errors.New("signer used before Preflight")
 	}
 
 	predPath := art.Path + ".predicate.json"
@@ -156,7 +156,7 @@ func (s *Signer) SignAndAttest(ctx context.Context, art *registry.Artifact) erro
 func parseMajorMinor(gitVersion string) (major, minor int, err error) {
 	parts := strings.Split(strings.TrimPrefix(gitVersion, "v"), ".")
 	if len(parts) < 2 {
-		return 0, 0, fmt.Errorf("want at least major.minor")
+		return 0, 0, errors.New("want at least major.minor")
 	}
 	if major, err = strconv.Atoi(parts[0]); err != nil {
 		return 0, 0, fmt.Errorf("major %q: %w", parts[0], err)

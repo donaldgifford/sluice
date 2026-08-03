@@ -24,6 +24,20 @@
 // intermediate steps are deliberately unexported so callers cannot
 // compose them in a weaker order.
 //
+// Registries embed a copy of the signing key as it stood when a
+// provider version was published and do not re-cut it when the owner
+// later extends the key, so a published key can report an expiry its
+// real key material has moved past.
+// [FetchRequest.RefreshedSigningKeys] supplies current exports, which
+// replace the registry's copy only on a full primary-fingerprint
+// match: the trusted set stays exactly what the registry published,
+// with fresher validity metadata and nothing relaxed.
+// [FetchRequest.AllowExpiredSigningKey] is the narrower escape hatch
+// for when no refreshed export exists — it relaxes expiry alone, still
+// refusing revoked keys (re-checked against the present, not the
+// signing time), bad signatures, unknown signers, and future-dated
+// signatures.
+//
 // Trust never derives from transport origin — registries legitimately
 // serve zips from unrelated CDN hosts — but every fetched URL must be
 // https in production. Failures carry the (provider, version,

@@ -86,13 +86,13 @@ func validateMeta(meta *downloadMetadata, addr providerAddr, version string, p c
 	expected := fmt.Sprintf("terraform-provider-%s_%s_%s_%s.zip", addr.typ, version, p.OS, p.Arch)
 	switch {
 	case meta.DownloadURL == "":
-		return fmt.Errorf("missing download_url")
+		return errors.New("missing download_url")
 	case meta.Filename == "":
-		return fmt.Errorf("missing filename")
+		return errors.New("missing filename")
 	case meta.ShasumsURL == "":
-		return fmt.Errorf("missing shasums_url")
+		return errors.New("missing shasums_url")
 	case meta.ShasumsSignatureURL == "":
-		return fmt.Errorf("missing shasums_signature_url")
+		return errors.New("missing shasums_signature_url")
 	case meta.OS != p.OS || meta.Arch != p.Arch:
 		return fmt.Errorf("response is for %s_%s, requested %s", meta.OS, meta.Arch, p)
 	case !isBareFilename(meta.Filename):
@@ -100,7 +100,7 @@ func validateMeta(meta *downloadMetadata, addr providerAddr, version string, p c
 	case meta.Filename != expected:
 		return fmt.Errorf("filename %q does not match expected %q for this tuple", meta.Filename, expected)
 	case len(meta.SigningKeys.GPGKeys) == 0:
-		return fmt.Errorf("no signing keys published")
+		return errors.New("no signing keys published")
 	}
 	for _, k := range meta.SigningKeys.GPGKeys {
 		if strings.TrimSpace(k.ASCIIArmor) == "" {

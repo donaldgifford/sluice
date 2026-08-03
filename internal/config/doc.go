@@ -13,4 +13,9 @@
 // failure rendering contract: [DiagnosticsError] for parse and decode
 // problems (position-aware, produced by hclkit), and [ValidationError]
 // for semantic rule violations (addressed by block label).
+//
+// The manifest also carries the two signing-key policy knobs
+// [Mirror.SigningKeyFiles] and [Provider.AllowExpiredSigningKey]. This
+// package only models and validates them; interpreting them belongs to
+// the verification chain in internal/registry.
 package config

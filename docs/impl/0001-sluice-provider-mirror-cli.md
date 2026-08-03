@@ -259,19 +259,19 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 
 - [x] LocalStack integration suite behind `//go:build integration`, run via
       `just test-integration` and a CI service container.
-- [ ] e2e CI job: `apply` to LocalStack, then `init` in a container with an
+- [x] e2e CI job: `apply` to LocalStack, then `init` in a container with an
       exclusive `network_mirror` block pointed at it — matrixed over both
       `terraform init` and `tofu init`; canaries include one
       `registry.opentofu.org` provider.
-- [ ] Error-message audit: every error path actionable, wrapped with `%w`,
+- [x] Error-message audit: every error path actionable, wrapped with `%w`,
       carrying the (provider, version, platform) tuple where applicable;
       `errors.Is`/`errors.As` handling at the top of `cmd/sluice`.
-- [ ] `doc.go` for every `internal/` package; SPDX headers throughout.
-- [ ] `--version`-style output verified (`version`, `commit`, `date` from
+- [x] `doc.go` for every `internal/` package; SPDX headers throughout.
+- [x] `--version`-style output verified (`version`, `commit`, `date` from
       ldflags).
-- [ ] Race detector clean across all packages; `internal/` coverage at or above
+- [x] Race detector clean across all packages; `internal/` coverage at or above
       the gate.
-- [ ] README quickstart updated with real command examples; cross-check
+- [x] README quickstart updated with real command examples; cross-check
       `docs/sluice-spec.md` against the implementation (flags, exit codes,
       output formats) and fix any drift.
 
@@ -311,9 +311,9 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
       every check provably fails closed.
 - [x] Integration: `httptest` fake registry; LocalStack S3 behind the
       `integration` build tag.
-- [ ] e2e: consumer `init` (terraform and tofu matrix) against a
+- [x] e2e: consumer `init` (terraform and tofu matrix) against a
       sluice-populated mirror.
-- [ ] Race detector on all suites; `internal/` coverage gate enforced in CI.
+- [x] Race detector on all suites; `internal/` coverage gate enforced in CI.
 
 ## Dependencies
 

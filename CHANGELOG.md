@@ -44,6 +44,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Documentation
 
 - Green the markdown lint baseline
+- Rewrite the README around real commands and close the Phase 5 audit
 
 ### Testing
 

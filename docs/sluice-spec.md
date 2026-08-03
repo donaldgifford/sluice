@@ -177,6 +177,7 @@ key verifies strictly.
 sluice validate  [--config-dir DIR | --config-file FILE]
 sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode]
 sluice apply     [--config-dir DIR | --config-file FILE] [--auto-approve] [--json]
+                 [--cosign-key REF] [--authorizing-commit SHA]
 sluice export    [--config-dir DIR | --config-file FILE] [--out FILE]
 sluice bootstrap PATH... [--out FILE]
 ```
@@ -253,9 +254,17 @@ version, per platform:
    approved-providers commit that authorized it.
 
 Publish per provider, strictly ordered: **zips → `<version>.json` files →
-`index.json` last**, with an ETag-conditional write on `index.json` captured at
-plan time. Index is the atomic publish; a precondition failure means concurrent
-modification → abort with its own exit code and message to re-plan.
+`index.json` last**, with an ETag-conditional write on `index.json`. There is no
+plan file: `apply` re-reads the bucket and re-computes the diff itself, so the
+ETag it conditions on is the one it just read, and the read→confirm→write window
+it guards is its own. Index is the atomic publish; a precondition failure means
+concurrent modification → abort with exit 3 and a message to re-plan.
+
+Signing identity comes from `--cosign-key` (a KMS URI or key file; empty means
+keyless OIDC) and `--authorizing-commit` (defaults to `$GITHUB_SHA`). There is
+no flag to skip signing. `cosign` 2.4 or newer must be on `PATH`; `apply`
+preflights it before any fetch or write, so a missing or too-old binary fails
+before anything is touched.
 
 Removals: rewrite `index.json`, delete `<version>.json`, leave zips.
 
