@@ -26,6 +26,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(publish)* Bucket interface, S3 adapter, and actual-state reader
 - *(cli)* Implement sluice plan with json golden and exit contract
 - *(publish)* Cosign signer with fail-closed preflight
+- *(publish)* Applier — ordered, conditional, idempotent, audited
 
 ### Bug Fixes
 

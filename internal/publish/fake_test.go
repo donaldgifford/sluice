@@ -23,6 +23,10 @@ type fakeBucket struct {
 	objects map[string]fakeObject
 	nextVer int
 
+	// ops records mutations in order ("put <key>" / "delete <key>")
+	// so tests can assert write ordering — the index must be last.
+	ops []string
+
 	// failPutsAfter, when >= 0, fails every Put after that many
 	// successes — the mid-apply crash lever.
 	failPutsAfter int
@@ -72,6 +76,7 @@ func (f *fakeBucket) Put(_ context.Context, key, _ string, body []byte, cond Con
 
 	f.puts++
 	f.nextVer++
+	f.ops = append(f.ops, "put "+key)
 	vid := fmt.Sprintf("v%03d", f.nextVer)
 	f.objects[key] = fakeObject{body: append([]byte(nil), body...), etag: etagOf(body), versionID: vid}
 	return vid, nil
@@ -82,6 +87,7 @@ func (f *fakeBucket) Delete(_ context.Context, key string) (string, error) {
 	defer f.mu.Unlock()
 	delete(f.objects, key)
 	f.nextVer++
+	f.ops = append(f.ops, "delete "+key)
 	return fmt.Sprintf("v%03d", f.nextVer), nil
 }
 

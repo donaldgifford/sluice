@@ -222,19 +222,19 @@ and audited.
 - [ ] `sluice apply`: interactive confirmation or `--auto-approve`; staging of
       verified artifacts; publish ordering per provider — zips →
       `<version>.json` → `index.json` last.
-- [ ] ETag-conditional `index.json` write; precondition failure aborts with exit
+- [x] ETag-conditional `index.json` write; precondition failure aborts with exit
       3 and a message instructing a re-plan.
-- [ ] Removal semantics: rewrite `index.json` without the version, delete
+- [x] Removal semantics: rewrite `index.json` without the version, delete
       `<version>.json`, leave zips in place.
-- [ ] Idempotent retry: a rerun after an induced mid-apply failure republishes
+- [x] Idempotent retry: a rerun after an induced mid-apply failure republishes
       staged artifacts and converges.
-- [ ] Per-artifact signing: `cosign sign-blob` (keyless via CI OIDC or KMS) plus
+- [x] Per-artifact signing: `cosign sign-blob` (keyless via CI OIDC or KMS) plus
       in-toto attestation (provider, version, platform, SHA-256, `h1:`, upstream
       signing key ID, authorizing commit) uploaded alongside the artifact — by
       shelling out to the mise-pinned cosign binary; a missing or wrong-version
       cosign fails closed.
 - [x] Add cosign to `mise.toml` (with a `# renovate:` annotation) and CI.
-- [ ] Structured `slog` JSON audit line per publish/retract (action, provider,
+- [x] Structured `slog` JSON audit line per publish/retract (action, provider,
       version, platform, `h1:`, `sha256`, `signing_key_id`, `s3_version_id`);
       schema asserted in tests.
 - [ ] Exit-code contract implemented exactly: 0 success/no changes, 1 error, 2
