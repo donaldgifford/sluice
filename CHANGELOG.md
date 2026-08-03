@@ -46,6 +46,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Testing
 
 - *(registry)* Tampered-fixture fail-closed suite
+- *(publish)* Add LocalStack integration suite behind the integration tag
 
 ### Miscellaneous Tasks
 

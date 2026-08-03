@@ -67,6 +67,39 @@ jobs:
           slug: donaldgifford/sluice
         continue-on-error: true
 
+  integration:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    services:
+      localstack:
+        image: localstack/localstack:4.4
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+        # The health endpoint returns 200 before every service finishes
+        # initializing, so require s3 itself to report ready.
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health | grep -E '\"s3\": \"(running|available)\"'" --health-interval
+          5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Set up mise (for just)
+        uses: jdx/mise-action@v4
+        with:
+          experimental: true
+
+      - name: Run integration tests
+        run: just test-integration
+        env:
+          SLUICE_LOCALSTACK_ENDPOINT: http://localhost:4566
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest

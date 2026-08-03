@@ -257,7 +257,7 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 
 #### Tasks
 
-- [ ] LocalStack integration suite behind `//go:build integration`, run via
+- [x] LocalStack integration suite behind `//go:build integration`, run via
       `just test-integration` and a CI service container.
 - [ ] e2e CI job: `apply` to LocalStack, then `init` in a container with an
       exclusive `network_mirror` block pointed at it — matrixed over both
@@ -304,12 +304,12 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 
 ## Testing Plan
 
-- [ ] Unit: table-driven throughout; every validation rule, every diff action
+- [x] Unit: table-driven throughout; every validation rule, every diff action
       type, `export` golden bytes, `-json` plan schema golden, `h1:` golden
       values.
-- [ ] Verification: the tampered-fixture suite — the load-bearing test class;
+- [x] Verification: the tampered-fixture suite — the load-bearing test class;
       every check provably fails closed.
-- [ ] Integration: `httptest` fake registry; LocalStack S3 behind the
+- [x] Integration: `httptest` fake registry; LocalStack S3 behind the
       `integration` build tag.
 - [ ] e2e: consumer `init` (terraform and tofu matrix) against a
       sluice-populated mirror.

@@ -52,7 +52,7 @@ func (f *fakeFetcher) FetchVerified(_ context.Context, source, version string, p
 	}, nil
 }
 
-func newTestApplier(t *testing.T, b *fakeBucket) (*Applier, *fakeFetcher, *bytes.Buffer) {
+func newTestApplier(t *testing.T, b Bucket) (*Applier, *fakeFetcher, *bytes.Buffer) {
 	t.Helper()
 
 	f := &fakeFetcher{}
@@ -77,7 +77,7 @@ func nullState(versions map[string][]string) mirror.State {
 
 // planAgainst reads actual state from the bucket and diffs desired
 // against it — the same read-diff step runApply performs.
-func planAgainst(t *testing.T, b *fakeBucket, desired mirror.State) (*mirror.Plan, *Actual) {
+func planAgainst(t *testing.T, b Bucket, desired mirror.State) (*mirror.Plan, *Actual) {
 	t.Helper()
 
 	declared := slices.Collect(maps.Keys(desired))
