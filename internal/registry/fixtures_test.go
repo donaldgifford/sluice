@@ -302,3 +302,12 @@ func copyEntity(t *testing.T, e *openpgp.Entity) *openpgp.Entity {
 	}
 	return ring[0]
 }
+
+// pastConfig is a crypto config whose clock is offset from now, for
+// building keys and signatures with controlled creation times.
+func pastConfig(offset time.Duration) *packet.Config {
+	return &packet.Config{
+		Algorithm: packet.PubKeyAlgoEdDSA,
+		Time:      func() time.Time { return time.Now().Add(offset) },
+	}
+}

@@ -147,6 +147,13 @@ publish — it updates validity metadata for a key already trusted, and nothing
 about verification is relaxed. An unreadable or unparseable file is a hard
 error, never a silent fall back to the stale copy.
 
+Substitution may only ever _add_ validity, never subtract it. If the registry
+publishes a key as **revoked**, sluice refuses that provider outright rather
+than replacing it — otherwise an export predating the revocation would un-revoke
+a compromised key, which is the one thing revocation exists to stop. The list is
+mirror-wide and applied to every fetch, so an export for one registry's key
+harmlessly matches nothing while fetching from another.
+
 **`allow_expired_signing_key`.** The escape hatch for a genuinely expired key
 with no refreshed export available. It accepts a signature made while the key
 was valid, and only that: a **revoked** key is still refused (revocation is

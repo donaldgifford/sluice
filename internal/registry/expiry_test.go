@@ -239,7 +239,9 @@ func TestRefreshedKeyReplacesStaleRegistryCopy(t *testing.T) {
 }
 
 // The refresh matches on primary fingerprint, so it can only ever
-// update a key the registry already published — never add one.
+// update a key the registry already published — never add one. A
+// rogue export never enters the keyring, so its signature is from an
+// unknown entity no matter that it was handed to us as a "refresh".
 func TestRefreshedKeyCannotAddTrust(t *testing.T) {
 	t.Parallel()
 
@@ -248,12 +250,63 @@ func TestRefreshedKeyCannotAddTrust(t *testing.T) {
 	published := newTestKey(t, "published")
 	rogue := newTestKey(t, "rogue")
 
-	// A rogue key offered as a "refresh" has a different fingerprint,
-	// so it never enters the keyring and its signature stays unknown.
 	_, _, err := verifySums(publishedKeys(t, published), sums,
 		signDetached(t, rogue, sums), []string{armorPub(t, rogue)}, true)
 	if !errors.Is(err, ErrSignature) {
 		t.Fatalf("verifySums() = %v, want ErrSignature for an unpublished signer", err)
+	}
+	if !strings.Contains(err.Error(), "unknown entity") {
+		t.Errorf("error %q does not say the signer is unknown", err)
+	}
+}
+
+// A mirror-wide signing_key_files list is applied to every fetch, so
+// an export for one registry's key routinely matches nothing while
+// fetching from another. That must stay a no-op, not an error.
+func TestRefreshedKeyForAnotherRegistryIsANoOp(t *testing.T) {
+	t.Parallel()
+
+	sums := []byte(strings.Repeat("ab", 32) + "  terraform-provider-null_3.2.4_linux_amd64.zip\n")
+
+	published := newTestKey(t, "published")
+	elsewhere := newTestKey(t, "other-registry")
+
+	keyID, _, err := verifySums(publishedKeys(t, published), sums,
+		signDetached(t, published, sums), []string{armorPub(t, elsewhere)}, false)
+	if err != nil {
+		t.Fatalf("verifySums() with an unrelated refresh: %v", err)
+	}
+	if want := published.PrimaryKey.KeyIdString(); keyID != want {
+		t.Errorf("keyID = %q, want %q", keyID, want)
+	}
+}
+
+// A refresh may only ever add validity. An operator export predating a
+// revocation the registry now publishes would otherwise un-revoke a
+// compromised key, which is the one thing revocation exists to stop.
+func TestRefreshedKeyCannotDropARevocation(t *testing.T) {
+	t.Parallel()
+
+	sums := []byte(strings.Repeat("ab", 32) + "  terraform-provider-null_3.2.4_linux_amd64.zip\n")
+
+	key := newTestKey(t, "release")
+	sig := signDetached(t, key, sums)
+	preRevocation := copyEntity(t, key) // the operator's stale export
+	revokeKey(t, key)                   // ...and then the key is revoked upstream
+
+	// Baseline: the registry's revoked copy alone is refused.
+	if _, _, err := verifySums(publishedKeys(t, key), sums, sig, nil, false); !errors.Is(err, ErrSignature) {
+		t.Fatalf("revoked key alone = %v, want ErrSignature", err)
+	}
+
+	// Offering the pre-revocation export must not resurrect it.
+	_, _, err := verifySums(publishedKeys(t, key), sums, sig,
+		[]string{armorPub(t, preRevocation)}, false)
+	if !errors.Is(err, ErrSignature) {
+		t.Fatalf("verifySums() = %v, want ErrSignature — the refresh dropped a revocation", err)
+	}
+	if !strings.Contains(err.Error(), "revoked") {
+		t.Errorf("error %q does not explain that the published key is revoked", err)
 	}
 }
 
@@ -312,5 +365,51 @@ func TestHashiCorpKeyIsExtendedUpstream(t *testing.T) {
 	}
 	if refreshed[0].PrimaryKey.KeyExpired(freshSelf, time.Now()) {
 		t.Error("the extended export is expired; re-fetch it from hashicorp.com")
+	}
+}
+
+// A .sig file can carry several packets, and the one that verifies is
+// not necessarily the first. Winding the clock back to a time claimed
+// by a packet nobody verified would let anyone who can serve the .sig
+// choose that clock, so the two must agree.
+func TestVerifyAtSigningTimeRejectsMismatchedLeadPacket(t *testing.T) {
+	t.Parallel()
+
+	sums := []byte(strings.Repeat("ab", 32) + "  terraform-provider-null_3.2.4_linux_amd64.zip\n")
+
+	// Both keys are generated three hours ago so they are valid across
+	// the whole window. The real signature is two hours old; the decoy
+	// prepended in front of it is only half an hour old, so winding the
+	// clock to the decoy's time still verifies the real one — the case
+	// the library's own signature-expiry backstop does not catch.
+	atKeygen := pastConfig(-3 * time.Hour)
+	published, err := openpgp.NewEntity("published", "sluice test", "pub@test.invalid", atKeygen)
+	if err != nil {
+		t.Fatalf("generating published key: %v", err)
+	}
+	decoy, err := openpgp.NewEntity("decoy", "sluice test", "decoy@test.invalid", atKeygen)
+	if err != nil {
+		t.Fatalf("generating decoy key: %v", err)
+	}
+
+	var realSig, decoySig bytes.Buffer
+	if err := openpgp.DetachSign(&realSig, published, bytes.NewReader(sums), pastConfig(-2*time.Hour)); err != nil {
+		t.Fatalf("signing: %v", err)
+	}
+	if err := openpgp.DetachSign(&decoySig, decoy, bytes.NewReader(sums), pastConfig(-30*time.Minute)); err != nil {
+		t.Fatalf("signing decoy: %v", err)
+	}
+	combined := append(decoySig.Bytes(), realSig.Bytes()...)
+
+	keyring, kerr := assembleKeyring(publishedKeys(t, published), nil)
+	if kerr != nil {
+		t.Fatalf("assembling keyring: %v", kerr)
+	}
+	_, err = verifyAtSigningTime(keyring, sums, combined)
+	if !errors.Is(err, ErrSignature) {
+		t.Fatalf("verifyAtSigningTime() = %v, want ErrSignature", err)
+	}
+	if !strings.Contains(err.Error(), "leads with a packet") {
+		t.Errorf("error %q does not explain the packet mismatch", err)
 	}
 }
