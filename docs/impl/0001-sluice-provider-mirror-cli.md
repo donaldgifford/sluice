@@ -1,7 +1,7 @@
 ---
 id: IMPL-0001
 title: "sluice Provider Mirror CLI"
-status: Draft
+status: Completed
 author: Donald Gifford
 created: 2026-08-01
 ---
@@ -10,7 +10,7 @@ created: 2026-08-01
 
 # IMPL 0001: sluice Provider Mirror CLI
 
-**Status:** Draft **Author:** Donald Gifford **Date:** 2026-08-01
+**Status:** Completed **Author:** Donald Gifford **Date:** 2026-08-01
 
 <!--toc:start-->
 

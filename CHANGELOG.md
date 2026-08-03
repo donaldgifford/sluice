@@ -48,6 +48,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - Rewrite the README around real commands and close the Phase 5 audit
 - *(impl)* Record Phase 5 status and the one unverified criterion
 - *(impl)* Record Phase 5 verified green in CI
+- *(impl)* Mark IMPL-0001 as completed
 
 ### Testing
 
