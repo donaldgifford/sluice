@@ -18,10 +18,12 @@ import (
 	"github.com/donaldgifford/sluice/internal/publish"
 )
 
-// fakeBucket is the minimal read-side fake plan needs; Put/Delete
-// exist only to satisfy the interface.
+// fakeBucket is read-only by default — plan must never write; apply
+// tests flip writable.
 type fakeBucket struct {
-	objects map[string][]byte
+	objects  map[string][]byte
+	writable bool
+	ops      []string
 }
 
 func (f *fakeBucket) Get(_ context.Context, key string) ([]byte, string, error) {
@@ -32,12 +34,29 @@ func (f *fakeBucket) Get(_ context.Context, key string) ([]byte, string, error) 
 	return body, "etag-" + key, nil
 }
 
-func (*fakeBucket) Put(context.Context, string, string, []byte, publish.Cond) (string, error) {
-	return "", errors.New("plan must never write")
+func (f *fakeBucket) Put(_ context.Context, key, _ string, body []byte, cond publish.Cond) (string, error) {
+	if !f.writable {
+		return "", errors.New("plan must never write")
+	}
+	_, exists := f.objects[key]
+	if cond.IfNoneMatch && exists {
+		return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
+	}
+	if cond.IfMatch != "" && (!exists || cond.IfMatch != "etag-"+key) {
+		return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
+	}
+	f.objects[key] = append([]byte(nil), body...)
+	f.ops = append(f.ops, "put "+key)
+	return "vid-" + key, nil
 }
 
-func (*fakeBucket) Delete(context.Context, string) (string, error) {
-	return "", errors.New("plan must never delete")
+func (f *fakeBucket) Delete(_ context.Context, key string) (string, error) {
+	if !f.writable {
+		return "", errors.New("plan must never delete")
+	}
+	delete(f.objects, key)
+	f.ops = append(f.ops, "delete "+key)
+	return "vid-del-" + key, nil
 }
 
 func (f *fakeBucket) List(_ context.Context, prefix string) ([]string, error) {

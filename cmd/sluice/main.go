@@ -50,9 +50,3 @@ func exitCode(err error) int {
 		return 1
 	}
 }
-
-// errNotImplemented marks a command whose implementation lands in a
-// later IMPL-0001 phase; the flag surface is wired ahead of it.
-func errNotImplemented(command, phase string) error {
-	return fmt.Errorf("sluice %s is not implemented yet (IMPL-0001 %s)", command, phase)
-}

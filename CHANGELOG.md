@@ -27,6 +27,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(cli)* Implement sluice plan with json golden and exit contract
 - *(publish)* Cosign signer with fail-closed preflight
 - *(publish)* Applier — ordered, conditional, idempotent, audited
+- *(cli)* Implement sluice apply with confirmation and full wiring
 
 ### Bug Fixes
 

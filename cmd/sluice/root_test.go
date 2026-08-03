@@ -102,33 +102,11 @@ func TestVersionOutput(t *testing.T) {
 	}
 }
 
-func TestLaterPhaseCommandsAreStubbed(t *testing.T) {
+func TestPlanValidatesConfigBeforeNetwork(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		args []string
-	}{
-		{name: "apply", args: []string{"apply", "--config-file", "testdata/valid.hcl"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			_, err := execute(t, tt.args...)
-			if err == nil || !strings.Contains(err.Error(), "not implemented yet") {
-				t.Fatalf("%s: err = %v, want a not-implemented error", tt.name, err)
-			}
-		})
-	}
-}
-
-func TestStubCommandsStillValidateConfig(t *testing.T) {
-	t.Parallel()
-
-	// The stubs must run the real load path so flag handling is
-	// end-to-end even before their phases land.
+	// Config validation runs before any AWS wiring, so an invalid
+	// manifest fails fast with the validation error.
 	_, err := execute(t, "plan", "--config-file", "testdata/invalid.hcl")
 	if err == nil || !strings.Contains(err.Error(), "version constraints are not supported") {
 		t.Fatalf("plan on invalid config: err = %v, want the validation error", err)

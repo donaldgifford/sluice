@@ -219,7 +219,7 @@ and audited.
       `remove` / `add_platform` schema (golden test — this is the comment-bot
       contract); `--detailed-exitcode` (0 clean / 1 error / 2 changes); capture
       the index ETag for apply.
-- [ ] `sluice apply`: interactive confirmation or `--auto-approve`; staging of
+- [x] `sluice apply`: interactive confirmation or `--auto-approve`; staging of
       verified artifacts; publish ordering per provider — zips →
       `<version>.json` → `index.json` last.
 - [x] ETag-conditional `index.json` write; precondition failure aborts with exit
@@ -237,7 +237,7 @@ and audited.
 - [x] Structured `slog` JSON audit line per publish/retract (action, provider,
       version, platform, `h1:`, `sha256`, `signing_key_id`, `s3_version_id`);
       schema asserted in tests.
-- [ ] Exit-code contract implemented exactly: 0 success/no changes, 1 error, 2
+- [x] Exit-code contract implemented exactly: 0 success/no changes, 1 error, 2
       plan changes with `--detailed-exitcode`, 3 conditional-write conflict.
 
 #### Success Criteria
