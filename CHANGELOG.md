@@ -51,6 +51,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 - *(registry)* Tampered-fixture fail-closed suite
 - *(publish)* Add LocalStack integration suite behind the integration tag
+- *(e2e)* Verify against the committed HashiCorp key by default
 
 ### Miscellaneous Tasks
 

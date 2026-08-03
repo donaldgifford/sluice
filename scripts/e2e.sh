@@ -77,11 +77,23 @@ export COSIGN_PASSWORD="${COSIGN_PASSWORD:-sluice-e2e}"
 # registry.terraform.io embeds the copy of HashiCorp's key that was
 # current when each provider was published, and does not re-cut it when
 # the key is extended. That copy expired 2026-04-18; the same
-# fingerprint runs to 2030 in HashiCorp's own export, so fetch the
-# canonical one and let sluice verify strictly against it.
-log "fetching HashiCorp's current signing key"
-curl -sf --max-time 30 "https://www.hashicorp.com/.well-known/pgp-key.txt" \
-  -o "${WORKDIR}/hashicorp.asc" || die "could not fetch HashiCorp's signing key"
+# fingerprint runs to 2030 in HashiCorp's own export, so verify against
+# the canonical one instead.
+#
+# The committed copy is used rather than fetching hashicorp.com on
+# every run: it keeps this job off a third-party network dependency,
+# and TestHashiCorpKeyIsExtendedUpstream fails if it ever goes stale.
+# Set SLUICE_E2E_FETCH_KEY=1 to pull the live key instead.
+KEY_FILE="${REPO_ROOT}/internal/registry/testdata/hashicorp-extended-key.asc"
+if [[ -n "${SLUICE_E2E_FETCH_KEY:-}" ]]; then
+  log "fetching HashiCorp's current signing key"
+  KEY_FILE="${WORKDIR}/hashicorp.asc"
+  curl -sf --max-time 30 "https://www.hashicorp.com/.well-known/pgp-key.txt" \
+    -o "${KEY_FILE}" || die "could not fetch HashiCorp's signing key"
+else
+  log "using the committed HashiCorp signing key"
+  [[ -f "${KEY_FILE}" ]] || die "missing ${KEY_FILE}"
+fi
 
 # --- Manifest: both registries, the platforms CI and dev machines run
 cat >"${WORKDIR}/manifest.hcl" <<EOF
@@ -89,7 +101,7 @@ mirror {
   bucket             = "${BUCKET}"
   region             = "us-east-1"
   platforms          = ["linux_amd64", "linux_arm64"]
-  signing_key_files  = ["${WORKDIR}/hashicorp.asc"]
+  signing_key_files  = ["${KEY_FILE}"]
 }
 
 provider "registry.terraform.io/hashicorp/null" {
