@@ -30,8 +30,9 @@ and should move into `docs/` there.
 
 ```hcl
 mirror {
-  bucket = "org-tf-mirror"
-  region = "us-east-1"
+  bucket    = "org-tf-mirror"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
 }
 
 provider "registry.terraform.io/hashicorp/aws" {
@@ -72,7 +73,7 @@ provider "registry.opentofu.org/hashicorp/null" {
 Files in the config directory are merged as HCL bodies. Recommended: one file
 per namespace or team-owned group, `mirror.hcl` for the `mirror` block.
 
-```
+```text
 approved-providers/
   mirror.hcl        # mirror {} only
   hashicorp.hcl     # the big ones
@@ -100,19 +101,66 @@ Removal is an HCL edit, reviewed like any other change:
 
 **`mirror` block** — exactly one across all files.
 
-| Attribute   | Type         | Required | Notes                                        |
-| ----------- | ------------ | -------- | -------------------------------------------- |
-| `bucket`    | string       | yes      | Mirror bucket name                           |
-| `region`    | string       | yes      | Bucket region (builds the REST endpoint URL) |
-| `platforms` | list(string) | yes      | Default `os_arch` matrix for all providers   |
+| Attribute           | Type         | Required | Notes                                                                |
+| ------------------- | ------------ | -------- | -------------------------------------------------------------------- |
+| `bucket`            | string       | yes      | Mirror bucket name                                                   |
+| `region`            | string       | yes      | Bucket region (builds the REST endpoint URL)                         |
+| `platforms`         | list(string) | yes      | Default `os_arch` matrix for all providers                           |
+| `signing_key_files` | list(string) | no       | Armored key exports that refresh a registry's stale copy — see below |
 
 **`provider` block** — zero or more; label is the full source address.
 
-| Attribute   | Type         | Required | Notes                                                                 |
-| ----------- | ------------ | -------- | --------------------------------------------------------------------- |
-| (label)     | string       | yes      | `hostname/namespace/type`, e.g. `registry.terraform.io/hashicorp/aws` |
-| `versions`  | list(string) | yes      | Exact versions only — never constraints (`~>` is a validation error)  |
-| `platforms` | list(string) | no       | Overrides `mirror.platforms` for this provider                        |
+| Attribute                   | Type         | Required | Notes                                                                 |
+| --------------------------- | ------------ | -------- | --------------------------------------------------------------------- |
+| (label)                     | string       | yes      | `hostname/namespace/type`, e.g. `registry.terraform.io/hashicorp/aws` |
+| `versions`                  | list(string) | yes      | Exact versions only — never constraints (`~>` is a validation error)  |
+| `platforms`                 | list(string) | no       | Overrides `mirror.platforms` for this provider                        |
+| `allow_expired_signing_key` | bool         | no       | Accept a signature whose key has since expired — see below            |
+
+### Upstream signing keys
+
+Ingest verifies `SHA256SUMS` against the GPG keys the origin registry publishes
+in its download metadata, and nothing else. Two real-world wrinkles have
+explicit handling:
+
+**Stale key exports (`mirror.signing_key_files`).** A registry embeds a copy of
+the signing key as it stood when a provider version was published, and does not
+re-cut that copy when the owner later extends the key. `registry.terraform.io`
+serves an export of HashiCorp's key `34365D9472D7468F` that expired 2026-04-18,
+while HashiCorp's own export of the **same fingerprint** runs to 2030-03-01 —
+extended, not rotated, in February 2026.
+
+Point `signing_key_files` at the current export and sluice verifies against it:
+
+```hcl
+mirror {
+  bucket            = "org-tf-mirror"
+  region            = "us-east-1"
+  platforms         = ["linux_amd64", "darwin_arm64"]
+  signing_key_files = ["keys/hashicorp.asc"] # from hashicorp.com/.well-known/pgp-key.txt
+}
+```
+
+A refreshed export replaces the registry's copy only when the **full primary
+fingerprint matches**, so it can never introduce a key the registry did not
+publish — it updates validity metadata for a key already trusted, and nothing
+about verification is relaxed. An unreadable or unparseable file is a hard
+error, never a silent fall back to the stale copy.
+
+Substitution may only ever _add_ validity, never subtract it. If the registry
+publishes a key as **revoked**, sluice refuses that provider outright rather
+than replacing it — otherwise an export predating the revocation would un-revoke
+a compromised key, which is the one thing revocation exists to stop. The list is
+mirror-wide and applied to every fetch, so an export for one registry's key
+harmlessly matches nothing while fetching from another.
+
+**`allow_expired_signing_key`.** The escape hatch for a genuinely expired key
+with no refreshed export available. It accepts a signature made while the key
+was valid, and only that: a **revoked** key is still refused (revocation is
+re-checked against the present, not the signing time), as is a bad signature, an
+unknown signer, or a signature claiming a future creation time. Every artifact
+it covers logs a `WARN` naming the key. Prefer `signing_key_files` — an extended
+key verifies strictly.
 
 ### Validation rules
 
@@ -132,12 +180,13 @@ Removal is an HCL edit, reviewed like any other change:
 
 ## Commands
 
-```
-sluice validate  [-config-dir DIR | -config-file FILE]
-sluice plan      [-config-dir DIR | -config-file FILE] [-json] [-detailed-exitcode]
-sluice apply     [-config-dir DIR | -config-file FILE] [-auto-approve] [-json]
-sluice export    [-config-dir DIR | -config-file FILE] [-out FILE]
-sluice bootstrap PATH... [-out FILE]
+```text
+sluice validate  [--config-dir DIR | --config-file FILE]
+sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode]
+sluice apply     [--config-dir DIR | --config-file FILE] [--auto-approve] [--json]
+                 [--cosign-key REF] [--authorizing-commit SHA]
+sluice export    [--config-dir DIR | --config-file FILE] [--out FILE]
+sluice bootstrap PATH... [--out FILE]
 ```
 
 ### `validate`
@@ -150,11 +199,11 @@ Reads every declared provider's `index.json` and `<version>.json` from the
 bucket, computes the diff, prints it. Never writes.
 
 Exit codes: `0` no changes · `1` error · `2` changes present
-(`-detailed-exitcode`; without the flag, 0 covers both clean and diff).
+(`--detailed-exitcode`; without the flag, 0 covers both clean and diff).
 
 Human output:
 
-```
+```text
 sluice plan
 
 registry.terraform.io/hashicorp/aws
@@ -167,7 +216,7 @@ registry.terraform.io/cloudflare/cloudflare
 Plan: 1 to add, 1 to remove, 1 platform change.
 ```
 
-`-json` output (stable contract for the PR comment bot):
+`--json` output (stable contract for the PR comment bot):
 
 ```json
 {
@@ -193,7 +242,7 @@ Plan: 1 to add, 1 to remove, 1 platform change.
 
 ### `apply`
 
-Plan, confirm (interactive) or proceed (`-auto-approve`), execute. Per added
+Plan, confirm (interactive) or proceed (`--auto-approve`), execute. Per added
 version, per platform:
 
 1. Resolve download metadata from the origin registry API
@@ -212,9 +261,17 @@ version, per platform:
    approved-providers commit that authorized it.
 
 Publish per provider, strictly ordered: **zips → `<version>.json` files →
-`index.json` last**, with an ETag-conditional write on `index.json` captured at
-plan time. Index is the atomic publish; a precondition failure means concurrent
-modification → abort with its own exit code and message to re-plan.
+`index.json` last**, with an ETag-conditional write on `index.json`. There is no
+plan file: `apply` re-reads the bucket and re-computes the diff itself, so the
+ETag it conditions on is the one it just read, and the read→confirm→write window
+it guards is its own. Index is the atomic publish; a precondition failure means
+concurrent modification → abort with exit 3 and a message to re-plan.
+
+Signing identity comes from `--cosign-key` (a KMS URI or key file; empty means
+keyless OIDC) and `--authorizing-commit` (defaults to `$GITHUB_SHA`). There is
+no flag to skip signing. `cosign` 2.4 or newer must be on `PATH`; `apply`
+preflights it before any fetch or write, so a missing or too-old binary fails
+before anything is touched.
 
 Removals: rewrite `index.json`, delete `<version>.json`, leave zips.
 
@@ -253,7 +310,7 @@ deterministic bytes for `--check`-style diffing.
 
 One-time rollout helper. Walks PATH(s) for `.terraform.lock.hcl` files and emits
 seed HCL covering every provider/version currently in use, grouped by namespace,
-sorted, deduplicated. Output goes to stdout or `-out`. Constraint info in lock
+sorted, deduplicated. Output goes to stdout or `--out`. Constraint info in lock
 files is ignored — lock files record exact versions, which is exactly what
 sluice wants.
 
@@ -261,7 +318,7 @@ sluice wants.
 
 ## Mirror layout (what apply produces)
 
-```
+```text
 registry.terraform.io/
   hashicorp/
     aws/
@@ -321,7 +378,7 @@ provider_installation {
 | ---- | --------------------------------------------- |
 | 0    | Success / no changes                          |
 | 1    | Error (validation, network, verification, S3) |
-| 2    | `plan -detailed-exitcode`: changes present    |
+| 2    | `plan --detailed-exitcode`: changes present   |
 | 3    | `apply`: conditional-write conflict — re-plan |
 
 ---
@@ -330,7 +387,7 @@ provider_installation {
 
 For the template scaffold; adjust to taste.
 
-```
+```text
 cmd/sluice/          # main, command wiring, flag parsing, exit codes
 internal/config/     # HCL schema types + decode/validate (hclkit)
 internal/mirror/     # protocol types, index read/parse, diff engine

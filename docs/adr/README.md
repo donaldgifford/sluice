@@ -27,10 +27,12 @@ docz create adr "Your ADR Title"
 - **Superseded by ADR-XXXX**: Replaced by another ADR
 
 <!-- BEGIN DOCZ AUTO-GENERATED -->
+
 ## All ADRs
 
-| ID | Title | Status | Date | Author | Link |
-|----|-------|--------|------|--------|------|
+| ID       | Title                                                        | Status   | Date       | Author         | Link                                                                                                                                     |
+| -------- | ------------------------------------------------------------ | -------- | ---------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | ADR-0001 | Policy Is Static, Data Is Exported, Input Is Never Generated | Proposed | 2026-07-27 | Donald Gifford | [0001-policy-is-static-data-is-exported-input-is-never-generated.md](0001-policy-is-static-data-is-exported-input-is-never-generated.md) |
-| ADR-0002 | Infrastructure Compliance via Policy-as-Code | Proposed | 2026-07-27 | Donald Gifford | [0002-infrastructure-compliance-via-policy-as-code.md](0002-infrastructure-compliance-via-policy-as-code.md) |
+| ADR-0002 | Infrastructure Compliance via Policy-as-Code                 | Proposed | 2026-07-27 | Donald Gifford | [0002-infrastructure-compliance-via-policy-as-code.md](0002-infrastructure-compliance-via-policy-as-code.md)                             |
+
 <!-- END DOCZ AUTO-GENERATED -->

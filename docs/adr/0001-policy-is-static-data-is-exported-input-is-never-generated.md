@@ -11,6 +11,7 @@ created: 2026-07-27
 # 0001. Policy Is Static, Data Is Exported, Input Is Never Generated
 
 <!--toc:start-->
+
 - [Status](#status)
 - [Context](#context)
 - [Decision](#decision)
@@ -43,7 +44,7 @@ evaluation:
 
 One invocation shows all three:
 
-```
+```sh
 conftest test .terraform.lock.hcl \
   --policy policy/provider/ \
   --data data/providers.json
@@ -74,7 +75,7 @@ generation, and generating the wrong one either duplicates the manifest parser
 4. **No HCL is ever generated.** HCL is exclusively what humans write (the
    manifest). The two machine formats are both projections of it:
 
-```
+```text
 manifest.hcl ──sluice apply──▶  S3 mirror protocol JSON   (what CAN be installed)
 manifest.hcl ──sluice export──▶ data/providers.json       (what's ALLOWED in a run)
 ```

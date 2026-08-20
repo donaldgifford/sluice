@@ -59,6 +59,11 @@ test:
 test-pkg pkg:
     @go test -v -race {{ pkg }}
 
+# End-to-end init oracle: apply to LocalStack, then terraform/tofu init from the mirror
+[group('test')]
+e2e tool="terraform": build
+    @./scripts/e2e.sh {{ tool }}
+
 # Run integration tests (//go:build integration), which need external services
 [group('test')]
 test-integration:
@@ -120,7 +125,7 @@ test-report:
 
 # Run every linter: Go, YAML, Markdown, GitHub Actions
 [group('lint')]
-lint: lint-go lint-yaml lint-md lint-actions
+lint: lint-go lint-yaml lint-md lint-actions lint-shell
     @echo "✓ All linters passed"
 
 # Run golangci-lint
@@ -153,6 +158,11 @@ lint-md:
 [group('lint')]
 lint-actions:
     @actionlint
+
+# Lint the shell scripts in scripts/
+[group('lint')]
+lint-shell:
+    @shellcheck scripts/*.sh
 
 # ─── Format ─────────────────────────────────────────────────────────
 

@@ -1,124 +1,129 @@
 # CLAUDE.md
 
-Per-repo orientation for `donaldgifford/sluice`. This file is a
-Go-shaped overlay on top of the universal homelab `CLAUDE.md` (see
-[homelab/docs](https://github.com/donaldgifford/docs)); the universals
-apply here too — only Go-specific guidance is captured below.
+Per-repo orientation for `donaldgifford/sluice`. This file is a Go-shaped
+overlay on top of the universal homelab `CLAUDE.md` (see
+[homelab/docs](https://github.com/donaldgifford/docs)); the universals apply
+here too — only guidance specific to this repo is captured below.
 
 ## What this is
 
-`sluice` is a Go binary maintained as part of the homelab fleet:
+`sluice` is a Go CLI that manages an S3-backed Terraform provider network mirror
+from a declarative HCL manifest — plan/apply semantics, cryptographic
+verification at ingest. The full picture lives in `docs/` (see below); start
+with `docs/sluice-spec.md` and `docs/roadmap.md`.
 
-- Single binary under `cmd/sluice/`; library code under
-  `internal/` (private to the module).
-- Built into a distroless container via `Dockerfile`; released as
-  multi-arch (linux+darwin × amd64+arm64) archives via `goreleaser`.
-- Lives on Forgejo (`github.com/donaldgifford/sluice`); a
-  `.github/workflows/` mirror exists so the repo can also build on
-  GitHub once it's mirrored.
+- Single binary under `cmd/sluice/`; library code under `internal/` (private to
+  the module).
+- GitHub-hosted (`github.com/donaldgifford/sluice`); released as multi-arch
+  (linux+darwin × amd64+arm64) archives via `goreleaser`. No container image —
+  the CLI ships as archives only.
 
 ## Layout
 
-```
-cmd/sluice/    # main package — keep thin, parse flags + call into internal/
-internal/               # library code; not importable outside this module
-Dockerfile              # multi-stage distroless build, cached layers
-.goreleaser.yml         # release config (multi-arch archives + checksums)
-mise.toml               # pinned go + golangci-lint + goreleaser + universal tools
-justfile                # `just` task runner — `just` for the menu
-.forgejo/workflows/     # CI (Forgejo Actions) — primary
-.github/workflows/      # CI (GitHub Actions) — mirror
+```text
+cmd/sluice/          # main package — keep thin; wire commands, call internal/
+internal/            # library code; not importable outside this module
+docs/                # docz-managed: rfc/ adr/ design/ impl/ investigation/
+docs/sluice-spec.md  # working spec: HCL schema, commands, exit codes
+docs/roadmap.md      # program roadmap across the mirror workstreams
+.goreleaser.yml      # release config (multi-arch archives + checksums + SBOM)
+mise.toml            # pinned go + golangci-lint + goreleaser + universal tools
+justfile             # `just` task runner — `just` for the menu
+.github/workflows/   # CI (GitHub Actions)
 ```
 
 ## Workflows
 
-### Build + run
+**`just`, not `make` — and just targets before ad-hoc shell.** Commonly rerun
+commands and tools get a just target so human and Claude run things identically;
+if you find yourself shelling out the same command twice, add a target. `just`
+prints the menu.
 
-- `just build` — `go build -o bin/sluice ./cmd/sluice`
-- `just run -- <args>` — runs via `go run` without building
-- `just test` — race detector + coverage to `coverage.txt`
+The load-bearing targets:
 
-### Lint + format
-
-- `just lint` — `golangci-lint run` + yamllint + markdownlint + prettier
-  (covers the universal linters too).
-- `just fmt` — `go fmt ./...` + yamlfmt + prettier `--write`.
+- `just build` / `just run -- <args>` — build to `build/bin/sluice` / run.
+- `just test` — race detector; `just test-pkg ./internal/foo` for one package;
+  `just test-integration` for `//go:build integration` suites.
+- `just test-coverage` + `just coverage-gate` — coverage profile, then the
+  per-package `internal/` floor check CI enforces.
+- `just lint` / `just fmt` — every linter / formatter (Go, YAML, Markdown,
+  Actions, shell).
+- `just e2e terraform` / `just e2e tofu` — the init oracle: apply to LocalStack,
+  then a real `init` in a container whose only provider source is that mirror.
+- `just changelog` — regenerate `CHANGELOG.md`; `just changelog-check` mirrors
+  CI's drift check.
+- `just check` — pre-commit gate (lint + test).
+- `just ci` — everything CI runs, locally. Green here means green in CI.
 
 ### Release
 
-- `just release v0.1.0` — tag + push. CI picks up the `v*` tag and runs
-  `goreleaser release --clean`, producing multi-arch archives and a
-  release entry on Forgejo (via `GITEA_TOKEN`) or GitHub
-  (via `GITHUB_TOKEN`).
-- Version metadata is injected into the binary via `-ldflags`:
-  `main.version`, `main.commit`, `main.date`. `--version`-style output
-  should print these.
-
-### Container build
-
-Built locally with:
-
-```
-docker build -t sluice:dev \
-  --build-arg VERSION=$(git describe --tags --always) \
-  --build-arg COMMIT=$(git rev-parse --short HEAD) \
-  --build-arg DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) .
-```
-
-The Dockerfile uses BuildKit `--mount=type=cache` for `/go/pkg/mod` and
-`/root/.cache/go-build` — first build is cold, subsequent builds reuse
-the cache layers.
+- Merging to `main` auto-releases: `pr-semver-bump` reads the PR's semver label
+  (`major`/`minor`/`patch`; `dont-release` skips), tags, and goreleaser
+  publishes archives + checksums + syft SBOMs, GPG-signed. Every PR needs
+  exactly one of those labels — `pr-labels.yml` enforces it.
+- `just release v0.1.0` exists for manual tag + push; `just release-local`
+  builds a snapshot without publishing.
+- Version metadata is injected via `-ldflags`: `main.version`, `main.commit`,
+  `main.date`. `--version`-style output should print these.
 
 ## Go-specific conventions
 
-- **`go.mod` go directive matches `mise.toml`** (currently `go 1.26.5`).
-  Bump both together — Renovate's Go updater handles `go.mod`; bump
-  `mise.toml` in the same commit.
-- **No `vendor/`**. Modules are resolved at build time; the Docker cache
-  mount handles offline-ish builds.
-- **`internal/` is a hard wall** — packages there can't be imported by
-  other modules. Use it liberally; promote to a separate module only
-  when something outside this repo actually needs it.
-- **`slog` for structured logs**, not `log` or third-party loggers. Set
-  the default handler in `main()` so library code doesn't have to
-  thread loggers.
-- **No `init()` for behavior**. `init()` runs at import time — it breaks
-  test isolation and surprises future-you. Wire dependencies in `main()`.
+- **`go.mod` go directive matches `mise.toml`** (currently `go 1.26.5`). Bump
+  both together — Renovate handles both, but keep them in one commit.
+- **No `vendor/`**. Modules are resolved at build time.
+- **`internal/` is a hard wall** — packages there can't be imported by other
+  modules. Use it liberally; promote to a separate module only when something
+  outside this repo actually needs it.
+- **SPDX headers + `doc.go`**: every `.go` file starts with the goheader
+  template (SPDX line + copyright), then a **blank line**, then the package
+  clause — the blank line keeps the header out of godoc. Package documentation
+  lives in a per-package `doc.go`, which is also where the package comment
+  satisfies revive without fighting goheader.
+- **Coverage floor**: `internal/` packages hold ≥60% coverage
+  (`just coverage-gate`); CI fails under it.
+- **`slog` for structured logs**, not `log` or third-party loggers. Set the
+  default handler in `main()` so library code doesn't have to thread loggers.
+- **No `init()` for behavior**. `init()` runs at import time — it breaks test
+  isolation and surprises future-you. Wire dependencies in `main()`.
 - **Tests live next to the code** (`foo_test.go` alongside `foo.go`).
-  Integration tests that need external services go under a `// +build
-  integration` (or `//go:build integration`) tag and run via
-  `go test -tags=integration ./...`.
-- **Errors wrap with `%w`**: `fmt.Errorf("loading config: %w", err)`.
-  Top of the call stack handles via `errors.Is` / `errors.As`.
+  Integration tests that need external services go under
+  `//go:build integration` and run via `just test-integration`.
+- **Errors wrap with `%w`**: `fmt.Errorf("loading config: %w", err)`. Top of the
+  call stack handles via `errors.Is` / `errors.As`.
 
 ## CI matrix
 
-- `.forgejo/workflows/ci.yml` runs on every push/PR — `just test` + `just lint`.
-- `.github/workflows/ci.yml` is the mirror; identical jobs, runs on the
-  GitHub mirror if/when one exists.
-- Release workflows fire only on `v*` tag push; `goreleaser` consumes
-  `.goreleaser.yml` and the appropriate token (`GITEA_TOKEN` for
-  Forgejo, `GITHUB_TOKEN` for GitHub).
+All GitHub Actions, on push/PR to `main` unless noted:
+
+- `ci.yml` — lint, race tests, coverage gate, build (the `just ci` set).
+- `changelog.yml` — byte-for-byte drift check that `CHANGELOG.md` matches
+  git-cliff output; `changelog-regen.yml` regenerates it post-merge.
+- `release.yml` — the label-driven auto-release above (push to `main`).
+- `pr-labels.yml` — requires exactly one semver label per PR.
+- `codeql.yml`, `security.yml`, `trufflehog.yml`, `license-check.yml` — static
+  analysis, vuln scanning, secret scanning, license allow-list.
+- `dependabot-severity-label.yml` — adds severity labels to Dependabot PRs.
+
+## Dependencies: Renovate vs Dependabot
+
+- **Renovate owns routine version bumps** — `go.mod` via the Go module manager,
+  `mise.toml` via a custom regex manager configured upstream in
+  `donaldgifford/renovate-config` (org-level config; no renovate file in this
+  repo).
+- **Dependabot is security-only** — `open-pull-requests-limit: 0` in
+  `.github/dependabot.yml` disables version updates; its only job is opening PRs
+  when the GitHub Advisory feed flags a CVE in the dep tree.
 
 ## Gotchas
 
-- **`go mod tidy` on first scaffold**: the post-create hook runs it
-  automatically. If you skip hooks (`--no-hooks`), run it manually
-  before the first `just build` or imports will be unresolved.
-- **`goreleaser` v2 config**: the v1 → v2 migration moved
-  `archives[].format` to `archives[].formats` (slice). If you copy a
-  pre-v2 `.goreleaser.yml` from elsewhere, validate with
-  `goreleaser check`.
-- **Distroless `nonroot` UID is 65532**. If the binary needs to write
-  state, mount a writable volume — the rootfs is read-only.
-- **goreleaser + Forgejo**: the v6 action defaults to GitHub-shaped
-  release URLs. The `gitea_urls` block in `.goreleaser.yml` is
-  commented by default — uncomment for Forgejo releases, and ensure
-  `GITEA_TOKEN` is set in repo Secrets (PAT with `write:repository`).
-
-## Renovate
-
-- `go.mod` updates are PR'd by Renovate's Go module manager.
-- Container base images in `Dockerfile` are PR'd by the Docker manager.
-- `mise.toml` versions are handled by a custom regex manager configured
-  upstream in `donaldgifford/renovate-config`.
+- **`CHANGELOG.md` is generated** by git-cliff and verified byte-for-byte in CI
+  — never hand-edit it; run `just changelog`. Both prettier (`.prettierignore`)
+  and markdownlint (`.markdownlint-cli2.yaml` `ignores`) are configured to leave
+  it alone.
+- **docz owns `docs/` indexes and ToCs** — the README tables and
+  `<!--toc:start-->` blocks are regenerated by `docz update`; don't hand-edit
+  them. `docs/.markdownlint-cli2.yaml` relaxes MD051/MD024 for docz output only
+  — the root config still enforces them everywhere else.
+- **goreleaser v2 config**: v1 → v2 moved `archives[].format` to
+  `archives[].formats` (slice). If you copy a pre-v2 `.goreleaser.yml` from
+  elsewhere, validate with `just release-check`.

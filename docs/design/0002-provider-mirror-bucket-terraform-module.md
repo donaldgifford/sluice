@@ -11,6 +11,7 @@ created: 2026-07-27
 # DESIGN 0002: Provider Mirror Bucket Terraform Module
 
 <!--toc:start-->
+
 - [Overview](#overview)
 - [Goals and Non-Goals](#goals-and-non-goals)
   - [Goals](#goals)

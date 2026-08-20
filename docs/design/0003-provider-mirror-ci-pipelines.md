@@ -11,6 +11,7 @@ created: 2026-07-27
 # DESIGN 0003: Provider Mirror CI Pipelines
 
 <!--toc:start-->
+
 - [Overview](#overview)
 - [Goals and Non-Goals](#goals-and-non-goals)
   - [Goals](#goals)

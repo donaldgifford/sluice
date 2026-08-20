@@ -30,7 +30,7 @@ repo:
   - changed-files:
       - any-glob-to-any-file: .codecov.yaml
       - any-glob-to-any-file: .codecov.yml
-      - any-glob-to-any-file: .markdownlint.yaml
+      - any-glob-to-any-file: "**/.markdownlint-cli2.yaml"
       - any-glob-to-any-file: .prettierrc.yaml
       - any-glob-to-any-file: .golangci.yml
       - any-glob-to-any-file: .goreleaser.yaml

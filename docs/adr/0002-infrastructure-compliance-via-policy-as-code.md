@@ -11,6 +11,7 @@ created: 2026-07-27
 # RFC 0002: Infrastructure Compliance via Policy-as-Code
 
 <!--toc:start-->
+
 - [Summary](#summary)
 - [Problem Statement](#problem-statement)
 - [Proposed Solution](#proposed-solution)

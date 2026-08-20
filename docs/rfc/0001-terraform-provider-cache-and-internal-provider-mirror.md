@@ -13,6 +13,7 @@ created: 2026-07-27
 **Status:** Draft **Author:** Donald Gifford **Date:** 2026-07-27
 
 <!--toc:start-->
+
 - [Summary](#summary)
 - [Problem Statement](#problem-statement)
   - [Scale and reliability](#scale-and-reliability)

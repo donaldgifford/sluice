@@ -1,0 +1,27 @@
+{
+  "add": [
+    {
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "version": "6.3.0",
+      "platforms": [
+        "darwin_arm64",
+        "linux_amd64"
+      ]
+    }
+  ],
+  "remove": [
+    {
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "version": "6.1.0"
+    }
+  ],
+  "add_platform": [
+    {
+      "provider": "registry.terraform.io/cloudflare/cloudflare",
+      "version": "5.4.0",
+      "platforms": [
+        "darwin_arm64"
+      ]
+    }
+  ]
+}

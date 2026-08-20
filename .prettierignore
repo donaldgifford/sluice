@@ -6,3 +6,6 @@ CHANGELOG.md
 # Vendored / generated output
 dist/
 build/
+
+# Machine-managed Claude Code session state (gitignored), not prose
+.claude/

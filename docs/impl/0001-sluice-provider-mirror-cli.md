@@ -1,7 +1,7 @@
 ---
 id: IMPL-0001
 title: "sluice Provider Mirror CLI"
-status: Draft
+status: Completed
 author: Donald Gifford
 created: 2026-08-01
 ---
@@ -10,7 +10,7 @@ created: 2026-08-01
 
 # IMPL 0001: sluice Provider Mirror CLI
 
-**Status:** Draft **Author:** Donald Gifford **Date:** 2026-08-01
+**Status:** Completed **Author:** Donald Gifford **Date:** 2026-08-01
 
 <!--toc:start-->
 
@@ -91,33 +91,33 @@ into.
 
 #### Tasks
 
-- [ ] Add `hclkit` v0.1.0 and `cobra` — the first entries in `go.mod`
+- [x] Add `hclkit` v0.1.0 and `cobra` — the first entries in `go.mod`
       (`go mod tidy`).
-- [ ] `internal/config` schema types: `mirror` block (`bucket`, `region`,
+- [x] `internal/config` schema types: `mirror` block (`bucket`, `region`,
       `platforms`) and `provider` blocks (label = full source address,
       `versions`, optional `platforms` override).
-- [ ] Loader: `--config-dir` via hclkit `LoadDir` with `MergeAppend` (top-level
+- [x] Loader: `--config-dir` via hclkit `LoadDir` with `MergeAppend` (top-level
       `*.hcl` merged as HCL bodies; an empty directory errors for free) and
       `--config-file` via `LoadFile`; the two flags mutually exclusive with a
       clear usage error.
-- [ ] Merge semantics: duplicate provider labels across files are an error —
+- [x] Merge semantics: duplicate provider labels across files are an error —
       merge is explicit, never a silent union.
-- [ ] Validation rules, each with a targeted error message:
-  - [ ] exactly one `mirror` block across all files;
-  - [ ] labels parse as three-segment source addresses
+- [x] Validation rules, each with a targeted error message:
+  - [x] exactly one `mirror` block across all files;
+  - [x] labels parse as three-segment source addresses
         (`hostname/namespace/type`) with a valid hostname;
-  - [ ] versions are exact semver (`hashicorp/go-version`), unique per block;
+  - [x] versions are exact semver (`hashicorp/go-version`), unique per block;
         constraint syntax (`~>`, `>=`, ...) rejected with an explanation of why
         sluice never resolves;
-  - [ ] platforms drawn from the curated `os_arch` matrix (`linux_amd64`,
+  - [x] platforms drawn from the curated `os_arch` matrix (`linux_amd64`,
         `darwin_arm64`, ...), one place in code to extend;
-  - [ ] empty `versions` list is an error (removing a provider = deleting its
+  - [x] empty `versions` list is an error (removing a provider = deleting its
         block).
-- [ ] cobra command tree: root plus the five subcommands, pflag double-dash flag
+- [x] cobra command tree: root plus the five subcommands, pflag double-dash flag
       surface (`--config-dir`, `--auto-approve`, ...); update the spec's
       single-dash flag examples to match; `validate` wired end to end with exit
       0/1.
-- [ ] Table-driven tests: every validation rule has at least one passing and one
+- [x] Table-driven tests: every validation rule has at least one passing and one
       failing case; error text asserted.
 
 #### Success Criteria
@@ -136,25 +136,25 @@ the policy repo's data contract, so its bytes are frozen here.
 
 #### Tasks
 
-- [ ] `internal/mirror`: network-mirror protocol types (`index.json`,
+- [x] `internal/mirror`: network-mirror protocol types (`index.json`,
       `<version>.json`) and desired-state expansion into (provider, version,
       platform) tuples, honoring per-provider `platforms` overrides.
-- [ ] Diff engine: pure struct-in/struct-out producing exactly `add-version`,
+- [x] Diff engine: pure struct-in/struct-out producing exactly `add-version`,
       `remove-version`, `add-platform`; deterministic action ordering so output
       is stable.
-- [ ] Table-driven diff tests: each action type, combinations, the empty plan,
+- [x] Table-driven diff tests: each action type, combinations, the empty plan,
       platform overrides, and full-provider removal (deleted block → all
       versions removed).
-- [ ] `sluice export`: canonical JSON projection
+- [x] `sluice export`: canonical JSON projection
       (`{"providers": {"<addr>": ["<version>", ...]}}`) — sorted keys, sorted
       versions, deterministic bytes; golden tests; no network, no side effects.
-- [ ] `sluice bootstrap PATH... [--out FILE]`: walk for `.terraform.lock.hcl`,
+- [x] `sluice bootstrap PATH... [--out FILE]`: walk for `.terraform.lock.hcl`,
       collect provider/version pairs, dedupe, group by namespace, sort;
       constraint info ignored (lock files record exact versions). Manifest bytes
       emitted via `hcl/v2/hclwrite` — hclkit v0.1.0 has no write path.
-- [ ] Bootstrap fixture tree: nested directories, repeated providers across
+- [x] Bootstrap fixture tree: nested directories, repeated providers across
       repos, a lock file with multiple providers.
-- [ ] Round-trip test: `bootstrap` output piped into `validate` exits 0.
+- [x] Round-trip test: `bootstrap` output piped into `validate` exits 0.
 
 #### Success Criteria
 
@@ -173,28 +173,28 @@ tampered-fixture suite is the proof it fails closed.
 
 #### Tasks
 
-- [ ] `internal/registry`: resolve per-platform download metadata from the
+- [x] `internal/registry`: resolve per-platform download metadata from the
       origin registry API
       (`/v1/providers/{ns}/{type}/{version}/download/{os}/{arch}`): zip URL,
       filename, `SHA256SUMS`, `SHA256SUMS.sig`, publisher signing keys —
       protocol-generic so `registry.opentofu.org` addresses work identically.
-- [ ] GPG signature verification over `SHA256SUMS` against the
+- [x] GPG signature verification over `SHA256SUMS` against the
       registry-published keys (`ProtonMail/go-crypto` openpgp).
-- [ ] Zip download (streamed to a temp file, size-bounded, context-aware) and
+- [x] Zip download (streamed to a temp file, size-bounded, context-aware) and
       SHA-256 verification against the signed sums entry.
-- [ ] Retry with backoff on registry calls; clean context cancellation.
-- [ ] `internal/hash`: `h1:` via `dirhash.HashZip`
+- [x] Retry with backoff on registry calls; clean context cancellation.
+- [x] `internal/hash`: `h1:` via `dirhash.HashZip`
       (`golang.org/x/mod/sumdb/dirhash`); golden tests whose expected values are
       cross-checked against real `.terraform.lock.hcl` entries for the fixture
       providers.
-- [ ] `httptest` fake registry serving fixture zips, sums, sigs, and keys,
+- [x] `httptest` fake registry serving fixture zips, sums, sigs, and keys,
       including an OpenTofu-registry-shaped fixture.
-- [ ] Tampered-fixture suite — each case must abort with a wrapped error
+- [x] Tampered-fixture suite — each case must abort with a wrapped error
       carrying the (provider, version, platform) tuple and stage nothing:
-  - [ ] `SHA256SUMS.sig` invalid for the sums file;
-  - [ ] sums signed by a key the registry did not publish;
-  - [ ] zip modified after signing (checksum mismatch);
-  - [ ] zip's entry missing from the sums file.
+  - [x] `SHA256SUMS.sig` invalid for the sums file;
+  - [x] sums signed by a key the registry did not publish;
+  - [x] zip modified after signing (checksum mismatch);
+  - [x] zip's entry missing from the sums file.
 
 #### Success Criteria
 
@@ -212,32 +212,32 @@ and audited.
 
 #### Tasks
 
-- [ ] `internal/publish`: S3 behind a small interface; read actual state from
+- [x] `internal/publish`: S3 behind a small interface; read actual state from
       the bucket's `index.json` and `<version>.json` files; a missing index
       means an unmirrored provider (first publish), not an error.
-- [ ] `sluice plan`: human diff output; `--json` with the stable `add` /
+- [x] `sluice plan`: human diff output; `--json` with the stable `add` /
       `remove` / `add_platform` schema (golden test — this is the comment-bot
       contract); `--detailed-exitcode` (0 clean / 1 error / 2 changes); capture
       the index ETag for apply.
-- [ ] `sluice apply`: interactive confirmation or `--auto-approve`; staging of
+- [x] `sluice apply`: interactive confirmation or `--auto-approve`; staging of
       verified artifacts; publish ordering per provider — zips →
       `<version>.json` → `index.json` last.
-- [ ] ETag-conditional `index.json` write; precondition failure aborts with exit
+- [x] ETag-conditional `index.json` write; precondition failure aborts with exit
       3 and a message instructing a re-plan.
-- [ ] Removal semantics: rewrite `index.json` without the version, delete
+- [x] Removal semantics: rewrite `index.json` without the version, delete
       `<version>.json`, leave zips in place.
-- [ ] Idempotent retry: a rerun after an induced mid-apply failure republishes
+- [x] Idempotent retry: a rerun after an induced mid-apply failure republishes
       staged artifacts and converges.
-- [ ] Per-artifact signing: `cosign sign-blob` (keyless via CI OIDC or KMS) plus
+- [x] Per-artifact signing: `cosign sign-blob` (keyless via CI OIDC or KMS) plus
       in-toto attestation (provider, version, platform, SHA-256, `h1:`, upstream
       signing key ID, authorizing commit) uploaded alongside the artifact — by
       shelling out to the mise-pinned cosign binary; a missing or wrong-version
       cosign fails closed.
-- [ ] Add cosign to `mise.toml` (with a `# renovate:` annotation) and CI.
-- [ ] Structured `slog` JSON audit line per publish/retract (action, provider,
+- [x] Add cosign to `mise.toml` (with a `# renovate:` annotation) and CI.
+- [x] Structured `slog` JSON audit line per publish/retract (action, provider,
       version, platform, `h1:`, `sha256`, `signing_key_id`, `s3_version_id`);
       schema asserted in tests.
-- [ ] Exit-code contract implemented exactly: 0 success/no changes, 1 error, 2
+- [x] Exit-code contract implemented exactly: 0 success/no changes, 1 error, 2
       plan changes with `--detailed-exitcode`, 3 conditional-write conflict.
 
 #### Success Criteria
@@ -257,21 +257,21 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 
 #### Tasks
 
-- [ ] LocalStack integration suite behind `//go:build integration`, run via
+- [x] LocalStack integration suite behind `//go:build integration`, run via
       `just test-integration` and a CI service container.
-- [ ] e2e CI job: `apply` to LocalStack, then `init` in a container with an
+- [x] e2e CI job: `apply` to LocalStack, then `init` in a container with an
       exclusive `network_mirror` block pointed at it — matrixed over both
       `terraform init` and `tofu init`; canaries include one
       `registry.opentofu.org` provider.
-- [ ] Error-message audit: every error path actionable, wrapped with `%w`,
+- [x] Error-message audit: every error path actionable, wrapped with `%w`,
       carrying the (provider, version, platform) tuple where applicable;
       `errors.Is`/`errors.As` handling at the top of `cmd/sluice`.
-- [ ] `doc.go` for every `internal/` package; SPDX headers throughout.
-- [ ] `--version`-style output verified (`version`, `commit`, `date` from
+- [x] `doc.go` for every `internal/` package; SPDX headers throughout.
+- [x] `--version`-style output verified (`version`, `commit`, `date` from
       ldflags).
-- [ ] Race detector clean across all packages; `internal/` coverage at or above
+- [x] Race detector clean across all packages; `internal/` coverage at or above
       the gate.
-- [ ] README quickstart updated with real command examples; cross-check
+- [x] README quickstart updated with real command examples; cross-check
       `docs/sluice-spec.md` against the implementation (flags, exit codes,
       output formats) and fix any drift.
 
@@ -283,6 +283,19 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
   license check, changelog check).
 - Spec and implementation agree — no documented flag, exit code, or output
   format differs from behavior.
+
+**Status (2026-08-03):** all three criteria met. Verified on GitHub Actions run
+[30816469681](https://github.com/donaldgifford/sluice/actions/runs/30816469681)
+(PR #1) — every job green, including `Integration Test`, `E2E (terraform init)`,
+and `E2E (tofu init)`. Both e2e jobs installed the `registry.terraform.io` and
+`registry.opentofu.org` canaries entirely from a sluice-built mirror, from a
+fresh `init` against an exclusive `network_mirror`. `just ci` is green locally,
+and the spec cross-check is done.
+
+One pre-existing failure is unrelated to this work and remains open:
+`trufflehog.yml` references `trufflesecurity/trufflehog@v3`, a tag that does not
+exist, so the job errors before scanning. It is untouched by this branch and
+needs its own fix.
 
 ---
 
@@ -304,16 +317,16 @@ The real consumer becomes the test oracle, and the tool gets release-ready.
 
 ## Testing Plan
 
-- [ ] Unit: table-driven throughout; every validation rule, every diff action
+- [x] Unit: table-driven throughout; every validation rule, every diff action
       type, `export` golden bytes, `-json` plan schema golden, `h1:` golden
       values.
-- [ ] Verification: the tampered-fixture suite — the load-bearing test class;
+- [x] Verification: the tampered-fixture suite — the load-bearing test class;
       every check provably fails closed.
-- [ ] Integration: `httptest` fake registry; LocalStack S3 behind the
+- [x] Integration: `httptest` fake registry; LocalStack S3 behind the
       `integration` build tag.
-- [ ] e2e: consumer `init` (terraform and tofu matrix) against a
+- [x] e2e: consumer `init` (terraform and tofu matrix) against a
       sluice-populated mirror.
-- [ ] Race detector on all suites; `internal/` coverage gate enforced in CI.
+- [x] Race detector on all suites; `internal/` coverage gate enforced in CI.
 
 ## Dependencies
 

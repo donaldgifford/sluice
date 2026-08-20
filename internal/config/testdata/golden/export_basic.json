@@ -1,0 +1,11 @@
+{
+  "providers": {
+    "registry.opentofu.org/hashicorp/null": [
+      "3.2.4"
+    ],
+    "registry.terraform.io/hashicorp/aws": [
+      "6.2.0",
+      "6.3.0"
+    ]
+  }
+}

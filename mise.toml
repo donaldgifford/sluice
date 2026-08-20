@@ -27,6 +27,8 @@ prettier = "3.7.4"
 git-cliff = "latest"
 # renovate: datasource=github-releases depName=rhysd/actionlint
 actionlint = "latest"
+# renovate: datasource=github-releases depName=koalaman/shellcheck
+shellcheck = "latest"
 # renovate: datasource=github-releases depName=casey/just
 just = "latest"
 
@@ -44,6 +46,8 @@ jq = "latest"
 golangci-lint = "2.11.4"
 
 # Security
+# renovate: datasource=github-releases depName=sigstore/cosign
+cosign = "2.6.1"
 # renovate: datasource=github-releases depName=anchore/syft
 syft = "latest"
 # renovate: datasource=go depName=golang.org/x/vuln
