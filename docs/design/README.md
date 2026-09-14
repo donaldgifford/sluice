@@ -31,11 +31,11 @@ docz create design "Your Design Title"
 
 ## All Design
 
-| ID          | Title                                           | Status | Date       | Author         | Link                                                                                                           |
-| ----------- | ----------------------------------------------- | ------ | ---------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| DESIGN-0001 | sluice — Provider Mirror CLI                    | Draft  | 2026-07-27 | Donald Gifford | [0001-sluice-provider-mirror-cli.md](0001-sluice-provider-mirror-cli.md)                                       |
-| DESIGN-0002 | Provider Mirror Bucket Terraform Module         | Draft  | 2026-07-27 | Donald Gifford | [0002-provider-mirror-bucket-terraform-module.md](0002-provider-mirror-bucket-terraform-module.md)             |
-| DESIGN-0003 | Provider Mirror CI Pipelines                    | Draft  | 2026-07-27 | Donald Gifford | [0003-provider-mirror-ci-pipelines.md](0003-provider-mirror-ci-pipelines.md)                                   |
-| DESIGN-0004 | Policy Library, Generator, and OCI Distribution | Draft  | 2026-07-27 | Donald Gifford | [0004-policy-library-generator-and-oci-distribution.md](0004-policy-library-generator-and-oci-distribution.md) |
+| ID          | Title                                           | Status      | Date       | Author         | Link                                                                                                           |
+| ----------- | ----------------------------------------------- | ----------- | ---------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| DESIGN-0001 | sluice — Provider Mirror CLI                    | Implemented | 2026-07-27 | Donald Gifford | [0001-sluice-provider-mirror-cli.md](0001-sluice-provider-mirror-cli.md)                                       |
+| DESIGN-0002 | Provider Mirror Bucket Terraform Module         | Draft       | 2026-07-27 | Donald Gifford | [0002-provider-mirror-bucket-terraform-module.md](0002-provider-mirror-bucket-terraform-module.md)             |
+| DESIGN-0003 | Provider Mirror CI Pipelines                    | Draft       | 2026-07-27 | Donald Gifford | [0003-provider-mirror-ci-pipelines.md](0003-provider-mirror-ci-pipelines.md)                                   |
+| DESIGN-0004 | Policy Library, Generator, and OCI Distribution | Draft       | 2026-07-27 | Donald Gifford | [0004-policy-library-generator-and-oci-distribution.md](0004-policy-library-generator-and-oci-distribution.md) |
 
 <!-- END DOCZ AUTO-GENERATED -->

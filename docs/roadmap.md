@@ -19,6 +19,14 @@ tracking was split per-design (2026-08-01).
 | 4   | Policy library        | DESIGN-0004 | governance repo       | IMPL there at kickoff                                | —                        |
 | 5   | Rollout and cutover   | program     | — (org-wide)          | this doc, below                                      | 1–4                      |
 
+## Status
+
+- Workstream 1 is complete: IMPL-0001 is Completed and `sluice` v0.0.1 is
+  released; DESIGN-0001 is Implemented.
+- Workstreams 2–4 are not yet kicked off (no per-design IMPL docs yet);
+  workstream 5 (rollout and cutover) remains gated on 1–4, so its tasks below
+  stay unchecked.
+
 ## Sequencing
 
 - Workstream 1 (CLI) is unblocked and self-contained; its phases are sequential
