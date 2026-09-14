@@ -5,6 +5,10 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 ## [unreleased]
 
+### Documentation
+
+- *(design)* Mark DESIGN-0001 Implemented for v0.0.1
+
 ### Miscellaneous Tasks
 
 - Update docz config and renovate config
