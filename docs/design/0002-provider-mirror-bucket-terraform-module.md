@@ -85,34 +85,38 @@ encryption is SSE-S3 by decision, not oversight.
   3. **DenyObjectDeletion** — deny `s3:DeleteObject` and
      `s3:DeleteObjectVersion` to all principals, with an exception condition
      (`aws:PrincipalArn NotIn var.break_glass_principal_arns`, default empty →
-     absolute deny).
+     absolute deny; count-gated at render — unconditional when the list is
+     empty, since an empty `NotIn` condition is invalid IAM).
   4. **DenyPolicyMutation** (optional, default on) — deny
      `s3:PutBucketPolicy`/`s3:DeleteBucketPolicy` outside
      `var.policy_admin_principal_arns`, so the deny-delete statement cannot be
      quietly removed.
+
 - Optional lifecycle rule transitioning noncurrent object versions to IA after N
   days (cost control that preserves forensics; never expiration).
 - Optional server access logging (`aws_s3_bucket_logging`) to
   `var.access_log_bucket` under `var.access_log_prefix` — the read-side
   forensics record. CloudTrail data events for writes are configured on the
   account trail, not managed here.
-- Optional `aws_iam_role` publisher: GitHub OIDC trust locked to
-  `var.publisher_repo_subjects` (e.g.
-  `repo:org/approved-providers:ref:refs/heads/main`); permissions
-  `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:GetBucketLocation` on
-  this bucket only. No delete actions — defense in depth atop the bucket deny.
+- Publisher IAM role (GitHub OIDC) assumed pre-existing and provisioned out of
+  band — this module creates no IAM resources. Same-account: the role's own
+  identity policy grants its writes (`s3:PutObject`, `s3:GetObject`,
+  `s3:ListBucket`, `s3:GetBucketLocation`, no deletes) and the bucket policy
+  needs no grant for it. Cross-account: the root module adds one injected allow
+  for the role ARN. Either way the bucket-policy denies constrain it.
 
 ### Interface
 
 Variables: `bucket_name`, `vpc_endpoint_ids` (list, required),
 `enable_object_lock` (bool, false), `object_lock_retention_days`,
-`create_publisher_role` (bool), `publisher_repo_subjects` (list),
 `break_glass_principal_arns` (list, default []), `policy_admin_principal_arns`,
 `noncurrent_version_ia_days` (number, null disables), `access_log_bucket`
 (string, null disables), `access_log_prefix`, `tags`.
 
 Outputs: `bucket_id`, `bucket_arn`, `mirror_url` (REST endpoint **with trailing
-slash**, ready to paste into `provider_installation`), `publisher_role_arn`.
+slash**, ready to paste into `provider_installation`). No `publisher_role_arn`:
+the publisher role is provisioned out of band and referenced directly by its
+consumers.
 
 ### Reuse of the shared S3 module family
 
@@ -145,11 +149,12 @@ Composed verbatim from the family (no new primitives):
 
 New surface the mirror module owns (absent from the family):
 
-- GitHub OIDC publisher role — `iam/role` trust is AWS principals only, with no
-  `Federated`/OIDC support. New `aws_iam_openid_connect_provider` plus a role
-  with `repo`/`sub` subject conditions and a write-no-delete policy on this
-  bucket only, behind `create_publisher_role` / `publisher_repo_subjects`,
-  outputting `publisher_role_arn`.
+- Publisher role placement — the GitHub OIDC publisher role is provisioned out
+  of band (assumed pre-existing), so the module creates no IAM resources and
+  exposes no role inputs or outputs. (For the record: `iam/role` trust is AWS
+  principals only with no `Federated`/OIDC support, which is moot under this
+  assumption.) Same-account needs no bucket-policy grant for the role;
+  cross-account adds one injected allow at the root.
 - `DenyObjectDeletion` with the break-glass exception — count-gated injection:
   an unconditional deny when `break_glass_principal_arns` is empty (a `NotIn []`
   condition is invalid IAM), a conditional `aws:PrincipalArn NotIn …` deny
@@ -185,22 +190,18 @@ None beyond S3 bucket configuration. Object layout is owned by the mirror CLI.
 
 1. Land module + tests; version and tag.
 2. Root module in the platform account; Atlantis apply.
-3. Feed `mirror_url` into the Atlantis `.terraformrc` mount and
-   `publisher_role_arn` into the approved-versions repo CI (see CI pipelines
+3. Feed `mirror_url` into the Atlantis `.terraformrc` mount and the out-of-band
+   publisher role ARN into the approved-versions repo CI (see CI pipelines
    design).
 
 ## Open Questions
 
 Open (2026-09-14, from the shared-family reuse analysis):
 
-- **OIDC provider ownership**: module-managed `aws_iam_openid_connect_provider`
-  vs a pre-existing account-level singleton the role references. A singleton
-  matches the one-GitHub-org reality; module-managed keeps the module
-  self-contained. Decide at kickoff.
 - **Wrapper shape**: thin wrapper over `internal/core` with this design's exact
   variable/output surface (recommended — see the reuse section) vs forking
-  `evidence-bucket`. Decide at kickoff; either way the new statements, the OIDC
-  role, and `mirror_url` are new code.
+  `evidence-bucket`. Decide at kickoff; either way the new statements and
+  `mirror_url` are new code.
 
 Resolved (2026-07-31):
 
@@ -218,6 +219,10 @@ Resolved (2026-07-31):
   manifest into the returned region or a new bucket. Accepted caveat: yanked
   zips retained for forensics exist only in this bucket and are not
   reconstructable from the manifest.
+- **Publisher role ownership** (2026-09-14): the GitHub OIDC publisher role is
+  assumed pre-existing out of band — the module creates no IAM resources and
+  exposes no role inputs or outputs. Same-account roles need no bucket-policy
+  grant; cross-account adds one injected allow at the root.
 
 ## References
 
