@@ -8,6 +8,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ### Documentation
 
 - *(design)* Mark DESIGN-0001 Implemented for v0.0.1
+- *(design)* Record s3 family reuse analysis in DESIGN-0002
 
 ### Miscellaneous Tasks
 
