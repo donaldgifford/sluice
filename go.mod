@@ -1,6 +1,6 @@
 module github.com/donaldgifford/sluice
 
-go 1.26.5
+go 1.26.8
 
 require (
 	github.com/ProtonMail/go-crypto v1.4.1
@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/spf13/cobra v1.10.2
 	github.com/zclconf/go-cty v1.18.1
-	golang.org/x/mod v0.38.0
+	golang.org/x/mod v0.41.0
 )
 
 require (
@@ -42,5 +42,5 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	golang.org/x/tools v0.47.0 // indirect
+	golang.org/x/tools v0.49.0 // indirect
 )
