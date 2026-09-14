@@ -11,13 +11,13 @@ tracking was split per-design (2026-08-01).
 
 ## Workstreams
 
-| #   | Workstream            | Design      | Home repo             | Tracking                                             | Gated on                 |
-| --- | --------------------- | ----------- | --------------------- | ---------------------------------------------------- | ------------------------ |
-| 1   | sluice CLI            | DESIGN-0001 | sluice (this repo)    | [IMPL-0001](impl/0001-sluice-provider-mirror-cli.md) | —                        |
-| 2   | Mirror bucket module  | DESIGN-0002 | shared modules family | IMPL there at kickoff                                | —                        |
-| 3   | Operational pipelines | DESIGN-0003 | sluice + governance   | split per repo at kickoff                            | INV-0001 (verifier only) |
-| 4   | Policy library        | DESIGN-0004 | governance repo       | IMPL there at kickoff                                | —                        |
-| 5   | Rollout and cutover   | program     | — (org-wide)          | this doc, below                                      | 1–4                      |
+| #   | Workstream            | Design      | Home repo             | Tracking                                                                                                                           | Gated on                 |
+| --- | --------------------- | ----------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| 1   | sluice CLI            | DESIGN-0001 | sluice (this repo)    | [IMPL-0001](impl/0001-sluice-provider-mirror-cli.md)                                                                               | —                        |
+| 2   | Mirror bucket module  | DESIGN-0002 | shared modules family | IMPL there at kickoff — reuse analysis in DESIGN-0002 (family covers baseline; OIDC role + deny statements + `mirror_url` are new) | —                        |
+| 3   | Operational pipelines | DESIGN-0003 | sluice + governance   | split per repo at kickoff                                                                                                          | INV-0001 (verifier only) |
+| 4   | Policy library        | DESIGN-0004 | governance repo       | IMPL there at kickoff                                                                                                              | —                        |
+| 5   | Rollout and cutover   | program     | — (org-wide)          | this doc, below                                                                                                                    | 1–4                      |
 
 ## Status
 

@@ -20,6 +20,7 @@ created: 2026-07-27
 - [Detailed Design](#detailed-design)
   - [Resources](#resources)
   - [Interface](#interface)
+  - [Reuse of the shared S3 module family](#reuse-of-the-shared-s3-module-family)
 - [API / Interface Changes](#api--interface-changes)
 - [Data Model](#data-model)
 - [Testing Strategy](#testing-strategy)
@@ -113,6 +114,52 @@ Variables: `bucket_name`, `vpc_endpoint_ids` (list, required),
 Outputs: `bucket_id`, `bucket_arn`, `mirror_url` (REST endpoint **with trailing
 slash**, ready to paste into `provider_installation`), `publisher_role_arn`.
 
+### Reuse of the shared S3 module family
+
+Reuse analysis (2026-09-14) against `modules/s3` (`bucket`, `evidence-bucket`,
+`access-logs-bucket` over `internal/core`) and `modules/iam/role`: workstream 2
+lands as a new purpose module (proposed `modules/s3/mirror-bucket`) wrapping
+`internal/core` directly. `evidence-bucket` is not the template — it pins Object
+Lock on with a mandatory retention duration and drags the Terragrunt
+remote-state globals; the mirror needs lock optional (default off) and no
+remote-state lookup on this path.
+
+Composed verbatim from the family (no new primitives):
+
+- Bucket, versioning (pinned on here), all-true public-access block, and
+  ownership controls from the core baseline.
+- SSE-S3 via `encryption = { mode = "s3" }` — anonymous reads cannot decrypt
+  SSE-KMS objects, so the design's SSE-S3 decision stands.
+- `DenyInsecureTransport` plus `DenyOldTls` — a superset of this design's
+  HTTPS-only statement.
+- VPCE restriction via `allowed_vpc_endpoint_ids` (`DenyOutsideVpce`); the
+  `AllowMirrorReadFromVPCE` allow is carried by `additional_policy_statements`
+  injection (the reserved-sid guard does not block it).
+- Access logging via the core's explicit `logging = { target_bucket, prefix }`
+  (the design's `access_log_bucket` / `access_log_prefix`, no fleet lookup); the
+  sink itself is the existing `access-logs-bucket` module.
+- Noncurrent-version IA transition (never expire) via `lifecycle_rules`.
+- Test pattern throughout: libtftest plan suites asserting rendered policy JSON
+  statement-by-statement, LocalStack apply, and tagged opt-in sandbox runs for
+  policy-evaluation behavior.
+
+New surface the mirror module owns (absent from the family):
+
+- GitHub OIDC publisher role — `iam/role` trust is AWS principals only, with no
+  `Federated`/OIDC support. New `aws_iam_openid_connect_provider` plus a role
+  with `repo`/`sub` subject conditions and a write-no-delete policy on this
+  bucket only, behind `create_publisher_role` / `publisher_repo_subjects`,
+  outputting `publisher_role_arn`.
+- `DenyObjectDeletion` with the break-glass exception — count-gated injection:
+  an unconditional deny when `break_glass_principal_arns` is empty (a `NotIn []`
+  condition is invalid IAM), a conditional `aws:PrincipalArn NotIn …` deny
+  otherwise.
+- `DenyPolicyMutation` guard (deny `PutBucketPolicy` / `DeleteBucketPolicy`
+  outside `policy_admin_principal_arns`) — injected statement, new.
+- `mirror_url` output — no family module outputs a serving URL today.
+- Interface mapping: the design's plain `bucket_name` rides the family's
+  `name_override` hatch; the six Terragrunt globals stay out.
+
 ## API / Interface Changes
 
 New module in the shared modules repo; consumed initially by one root module in
@@ -144,7 +191,18 @@ None beyond S3 bucket configuration. Object layout is owned by the mirror CLI.
 
 ## Open Questions
 
-None currently open. Resolved (2026-07-31):
+Open (2026-09-14, from the shared-family reuse analysis):
+
+- **OIDC provider ownership**: module-managed `aws_iam_openid_connect_provider`
+  vs a pre-existing account-level singleton the role references. A singleton
+  matches the one-GitHub-org reality; module-managed keeps the module
+  self-contained. Decide at kickoff.
+- **Wrapper shape**: thin wrapper over `internal/core` with this design's exact
+  variable/output surface (recommended — see the reuse section) vs forking
+  `evidence-bucket`. Decide at kickoff; either way the new statements, the OIDC
+  role, and `mirror_url` are new code.
+
+Resolved (2026-07-31):
 
 - **Break-glass**: ship with `break_glass_principal_arns = []` — absolute deny.
   Content mistakes are fixed forward with new object versions; a true purge
