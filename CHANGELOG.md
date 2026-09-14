@@ -63,4 +63,6 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - Lint shell scripts as part of just lint
 - *(deps)* Bump golang.org/x/crypto to v0.54.0
 - Pin trufflehog to a ref that resolves
+- *(deps)* Bump golang.org/x/mod to v0.41.0 and go to 1.26.8
+- *(deps)* Bump golang.org/x/crypto to v0.57.0
 
