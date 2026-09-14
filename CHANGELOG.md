@@ -9,6 +9,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 
 - *(design)* Mark DESIGN-0001 Implemented for v0.0.1
 - *(design)* Record s3 family reuse analysis in DESIGN-0002
+- *(design)* Fold OIDC-out-of-band assumption into DESIGN-0002
 
 ### Miscellaneous Tasks
 
