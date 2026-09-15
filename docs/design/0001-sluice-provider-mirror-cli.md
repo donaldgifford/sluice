@@ -1,7 +1,7 @@
 ---
 id: DESIGN-0001
 title: "sluice — Provider Mirror CLI"
-status: Draft
+status: Implemented
 author: Donald Gifford
 created: 2026-07-27
 ---
@@ -33,7 +33,7 @@ created: 2026-07-27
 - [References](#references)
 <!--toc:end-->
 
-**Status:** Draft **Author:** Donald **Date:** 2026-07-26
+**Status:** Implemented **Author:** Donald **Date:** 2026-07-26
 
 ## Overview
 

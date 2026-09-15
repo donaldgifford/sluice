@@ -20,6 +20,7 @@ created: 2026-07-27
 - [Detailed Design](#detailed-design)
   - [Resources](#resources)
   - [Interface](#interface)
+  - [Reuse of the shared S3 module family](#reuse-of-the-shared-s3-module-family)
 - [API / Interface Changes](#api--interface-changes)
 - [Data Model](#data-model)
 - [Testing Strategy](#testing-strategy)
@@ -84,34 +85,85 @@ encryption is SSE-S3 by decision, not oversight.
   3. **DenyObjectDeletion** — deny `s3:DeleteObject` and
      `s3:DeleteObjectVersion` to all principals, with an exception condition
      (`aws:PrincipalArn NotIn var.break_glass_principal_arns`, default empty →
-     absolute deny).
+     absolute deny; count-gated at render — unconditional when the list is
+     empty, since an empty `NotIn` condition is invalid IAM).
   4. **DenyPolicyMutation** (optional, default on) — deny
      `s3:PutBucketPolicy`/`s3:DeleteBucketPolicy` outside
      `var.policy_admin_principal_arns`, so the deny-delete statement cannot be
      quietly removed.
+
 - Optional lifecycle rule transitioning noncurrent object versions to IA after N
   days (cost control that preserves forensics; never expiration).
 - Optional server access logging (`aws_s3_bucket_logging`) to
   `var.access_log_bucket` under `var.access_log_prefix` — the read-side
   forensics record. CloudTrail data events for writes are configured on the
   account trail, not managed here.
-- Optional `aws_iam_role` publisher: GitHub OIDC trust locked to
-  `var.publisher_repo_subjects` (e.g.
-  `repo:org/approved-providers:ref:refs/heads/main`); permissions
-  `s3:PutObject`, `s3:GetObject`, `s3:ListBucket`, `s3:GetBucketLocation` on
-  this bucket only. No delete actions — defense in depth atop the bucket deny.
+- Publisher IAM role (GitHub OIDC) assumed pre-existing and provisioned out of
+  band — this module creates no IAM resources. Same-account: the role's own
+  identity policy grants its writes (`s3:PutObject`, `s3:GetObject`,
+  `s3:ListBucket`, `s3:GetBucketLocation`, no deletes) and the bucket policy
+  needs no grant for it. Cross-account: the root module adds one injected allow
+  for the role ARN. Either way the bucket-policy denies constrain it.
 
 ### Interface
 
 Variables: `bucket_name`, `vpc_endpoint_ids` (list, required),
 `enable_object_lock` (bool, false), `object_lock_retention_days`,
-`create_publisher_role` (bool), `publisher_repo_subjects` (list),
 `break_glass_principal_arns` (list, default []), `policy_admin_principal_arns`,
 `noncurrent_version_ia_days` (number, null disables), `access_log_bucket`
 (string, null disables), `access_log_prefix`, `tags`.
 
 Outputs: `bucket_id`, `bucket_arn`, `mirror_url` (REST endpoint **with trailing
-slash**, ready to paste into `provider_installation`), `publisher_role_arn`.
+slash**, ready to paste into `provider_installation`). No `publisher_role_arn`:
+the publisher role is provisioned out of band and referenced directly by its
+consumers.
+
+### Reuse of the shared S3 module family
+
+Reuse analysis (2026-09-14) against `modules/s3` (`bucket`, `evidence-bucket`,
+`access-logs-bucket` over `internal/core`) and `modules/iam/role`: workstream 2
+lands as a new purpose module (proposed `modules/s3/mirror-bucket`) wrapping
+`internal/core` directly. `evidence-bucket` is not the template — it pins Object
+Lock on with a mandatory retention duration and drags the Terragrunt
+remote-state globals; the mirror needs lock optional (default off) and no
+remote-state lookup on this path.
+
+Composed verbatim from the family (no new primitives):
+
+- Bucket, versioning (pinned on here), all-true public-access block, and
+  ownership controls from the core baseline.
+- SSE-S3 via `encryption = { mode = "s3" }` — anonymous reads cannot decrypt
+  SSE-KMS objects, so the design's SSE-S3 decision stands.
+- `DenyInsecureTransport` plus `DenyOldTls` — a superset of this design's
+  HTTPS-only statement.
+- VPCE restriction via `allowed_vpc_endpoint_ids` (`DenyOutsideVpce`); the
+  `AllowMirrorReadFromVPCE` allow is carried by `additional_policy_statements`
+  injection (the reserved-sid guard does not block it).
+- Access logging via the core's explicit `logging = { target_bucket, prefix }`
+  (the design's `access_log_bucket` / `access_log_prefix`, no fleet lookup); the
+  sink itself is the existing `access-logs-bucket` module.
+- Noncurrent-version IA transition (never expire) via `lifecycle_rules`.
+- Test pattern throughout: libtftest plan suites asserting rendered policy JSON
+  statement-by-statement, LocalStack apply, and tagged opt-in sandbox runs for
+  policy-evaluation behavior.
+
+New surface the mirror module owns (absent from the family):
+
+- Publisher role placement — the GitHub OIDC publisher role is provisioned out
+  of band (assumed pre-existing), so the module creates no IAM resources and
+  exposes no role inputs or outputs. (For the record: `iam/role` trust is AWS
+  principals only with no `Federated`/OIDC support, which is moot under this
+  assumption.) Same-account needs no bucket-policy grant for the role;
+  cross-account adds one injected allow at the root.
+- `DenyObjectDeletion` with the break-glass exception — count-gated injection:
+  an unconditional deny when `break_glass_principal_arns` is empty (a `NotIn []`
+  condition is invalid IAM), a conditional `aws:PrincipalArn NotIn …` deny
+  otherwise.
+- `DenyPolicyMutation` guard (deny `PutBucketPolicy` / `DeleteBucketPolicy`
+  outside `policy_admin_principal_arns`) — injected statement, new.
+- `mirror_url` output — no family module outputs a serving URL today.
+- Interface mapping: the design's plain `bucket_name` rides the family's
+  `name_override` hatch; the six Terragrunt globals stay out.
 
 ## API / Interface Changes
 
@@ -138,13 +190,20 @@ None beyond S3 bucket configuration. Object layout is owned by the mirror CLI.
 
 1. Land module + tests; version and tag.
 2. Root module in the platform account; Atlantis apply.
-3. Feed `mirror_url` into the Atlantis `.terraformrc` mount and
-   `publisher_role_arn` into the approved-versions repo CI (see CI pipelines
+3. Feed `mirror_url` into the Atlantis `.terraformrc` mount and the out-of-band
+   publisher role ARN into the approved-versions repo CI (see CI pipelines
    design).
 
 ## Open Questions
 
-None currently open. Resolved (2026-07-31):
+Open (2026-09-14, from the shared-family reuse analysis):
+
+- **Wrapper shape**: thin wrapper over `internal/core` with this design's exact
+  variable/output surface (recommended — see the reuse section) vs forking
+  `evidence-bucket`. Decide at kickoff; either way the new statements and
+  `mirror_url` are new code.
+
+Resolved (2026-07-31):
 
 - **Break-glass**: ship with `break_glass_principal_arns = []` — absolute deny.
   Content mistakes are fixed forward with new object versions; a true purge
@@ -160,6 +219,10 @@ None currently open. Resolved (2026-07-31):
   manifest into the returned region or a new bucket. Accepted caveat: yanked
   zips retained for forensics exist only in this bucket and are not
   reconstructable from the manifest.
+- **Publisher role ownership** (2026-09-14): the GitHub OIDC publisher role is
+  assumed pre-existing out of band — the module creates no IAM resources and
+  exposes no role inputs or outputs. Same-account roles need no bucket-policy
+  grant; cross-account adds one injected allow at the root.
 
 ## References
 
