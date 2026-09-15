@@ -31,8 +31,9 @@ docz create impl "Your Implementation Title"
 
 ## All Implementation Plans
 
-| ID        | Title                      | Status    | Date       | Author         | Link                                                                     |
-| --------- | -------------------------- | --------- | ---------- | -------------- | ------------------------------------------------------------------------ |
-| IMPL-0001 | sluice Provider Mirror CLI | Completed | 2026-08-01 | Donald Gifford | [0001-sluice-provider-mirror-cli.md](0001-sluice-provider-mirror-cli.md) |
+| ID        | Title                          | Status    | Date       | Author         | Link                                                                             |
+| --------- | ------------------------------ | --------- | ---------- | -------------- | -------------------------------------------------------------------------------- |
+| IMPL-0001 | sluice Provider Mirror CLI     | Completed | 2026-08-01 | Donald Gifford | [0001-sluice-provider-mirror-cli.md](0001-sluice-provider-mirror-cli.md)         |
+| IMPL-0002 | S3-Compatible Storage Backends | Draft     | 2026-09-15 | Donald Gifford | [0002-s3-compatible-storage-backends.md](0002-s3-compatible-storage-backends.md) |
 
 <!-- END DOCZ AUTO-GENERATED -->
