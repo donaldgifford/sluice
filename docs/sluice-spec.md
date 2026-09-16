@@ -107,6 +107,8 @@ Removal is an HCL edit, reviewed like any other change:
 | `region`            | string       | yes      | Bucket region (builds the REST endpoint URL)                         |
 | `platforms`         | list(string) | yes      | Default `os_arch` matrix for all providers                           |
 | `signing_key_files` | list(string) | no       | Armored key exports that refresh a registry's stale copy — see below |
+| `endpoint`          | string       | no       | S3 API base URL for S3-compatible backends (empty = AWS)             |
+| `path_style`        | bool         | no       | Force path-style addressing; required when `endpoint` is set         |
 
 **`provider` block** — zero or more; label is the full source address.
 
@@ -181,13 +183,18 @@ key verifies strictly.
 ## Commands
 
 ```text
-sluice validate  [--config-dir DIR | --config-file FILE]
-sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode]
+sluice validate  [--config-dir DIR | --config-file FILE] [--s3-endpoint URL] [--s3-path-style]
+sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode] [--s3-endpoint URL] [--s3-path-style]
 sluice apply     [--config-dir DIR | --config-file FILE] [--auto-approve] [--json]
-                 [--cosign-key REF] [--authorizing-commit SHA]
-sluice export    [--config-dir DIR | --config-file FILE] [--out FILE]
+                 [--cosign-key REF] [--authorizing-commit SHA] [--s3-endpoint URL] [--s3-path-style]
+sluice export    [--config-dir DIR | --config-file FILE] [--out FILE] [--s3-endpoint URL] [--s3-path-style]
 sluice bootstrap PATH... [--out FILE]
 ```
+
+Backend selection (DESIGN-0005): explicit flags beat `SLUICE_S3_ENDPOINT` /
+`SLUICE_S3_PATH_STYLE`, which beat the manifest. An endpoint with path-style
+unset at every layer is an error; non-TLS endpoints are refused outside loopback
+hosts.
 
 ### `validate`
 
