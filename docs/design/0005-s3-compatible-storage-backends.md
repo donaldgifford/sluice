@@ -284,8 +284,11 @@ prior version behind.
 
 ## Open Questions
 
+All resolved (2026-09-16) — all-(a), recorded below per question.
+
 1. **Degraded-mode posture when the backend lacks conditional writes and
-   versioning?**
+   versioning?** **Resolved (2026-09-16): (a).** Fail closed by default; the
+   silent precondition-ignore shape must never be the default.
    - a. (Recommended) Fail closed by default; `apply` refuses degraded backends
      unless `--allow-unversioned-backend` is set, with the weakening logged to
      the audit trail. The dangerous failure shape (server 200s while ignoring
@@ -295,7 +298,8 @@ prior version behind.
    - c. Refuse S3-compatibles outright until Garage ships versioning and
      preconditions, revisiting then.
    - Other: \_\_\_
-2. **Where should the endpoint configuration live?**
+2. **Where should the endpoint configuration live?** **Resolved (2026-09-16):
+   (a).** One manifest owns the topology; env overrides stay for 12-factor use.
    - a. (Recommended) Optional `endpoint` / `path_style` on the `mirror` HCL
      block, overridable by `SLUICE_S3_ENDPOINT` / `SLUICE_S3_PATH_STYLE`. Keeps
      one manifest describing the whole mirror, reviewable in git.
@@ -303,7 +307,12 @@ prior version behind.
      address several stores.
    - c. Environment only, no HCL surface — topology stays out of the manifest.
    - Other: \_\_\_
-3. **How should Terraform/Atlantis read from the mirror?**
+3. **How should Terraform/Atlantis read from the mirror?** **Resolved
+   (2026-09-16): (a).** Caddy (or equivalent) in front of the Garage website
+   endpoint (`:3902`, anonymous reads), mapping Terraform path-style URLs to the
+   `Host`-routed bucket origin with TLS plus IP allowlisting; a single mirror
+   bucket keeps it to one hardcoded `Host` mapping. Writes (`sluice apply`) go
+   direct to the S3 API endpoint (`:3900`) — the proxy is reads-only.
    - a. (Recommended) Reverse proxy in front of the website endpoint: path-style
      URLs for Terraform, plus TLS and IP allowlisting so the mirror is
      fleet-readable rather than world-readable.
@@ -311,13 +320,17 @@ prior version behind.
    - c. Authenticated S3 API reads with per-runner keys — no anonymous serving
      at all.
    - Other: \_\_\_
-4. **How do CI runners authenticate to Garage for publish?**
+4. **How do CI runners authenticate to Garage for publish?** **Resolved
+   (2026-09-16): (a).** Vault/env-injected static keys with rotation; no OIDC
+   equivalent exists for Garage.
    - a. (Recommended) Vault/env-injected static publisher key pair. No OIDC
      equivalent exists for Garage; key custody plus rotation is the control.
    - b. Short-lived keys minted via the Garage admin API at job start.
    - c. A small OIDC-bridging sidecar that trades GitHub OIDC for Garage keys.
    - Other: \_\_\_
-5. **How broad should backend support be?**
+5. **How broad should backend support be?** **Resolved (2026-09-16): (a).**
+   Generic probe-driven support; the checklist is the bar for any further
+   backend.
    - a. (Recommended) Generic S3-compatible support behind the capability probe:
      full mode where honored, degraded mode where absent. One code path, new
      backends fall out of the checklist.
@@ -325,7 +338,9 @@ prior version behind.
      appears.
    - c. Explicit allowlist (Garage + MinIO), each with a pinned quirks profile.
    - Other: \_\_\_
-6. **How do we preserve yank forensics without object versioning?**
+6. **How do we preserve yank forensics without object versioning?** **Resolved
+   (2026-09-16): (a).** Recycle-bin `_retired/` copy-before-delete; cosign
+   material remains independent tamper evidence.
    - a. (Recommended) Recycle-bin pattern: `apply` copies yanked artifacts to a
      `_retired/` prefix (retention-managed) before deleting. Cheap, keeps the
      forensic trail the audit log points at.
