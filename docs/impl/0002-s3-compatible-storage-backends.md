@@ -116,7 +116,7 @@ Probe, mode selection, fail-closed apply, and degraded audit semantics.
 
 #### Tasks
 
-- [ ] Implement the startup probe (`GetBucketVersioning` + scratch-key
+- [x] Implement the startup probe (`GetBucketVersioning` + scratch-key
       `If-None-Match` / wrong-`If-Match` round-trip + cleanup under
       `_sluice/probe/`); run before any read, print mode in `plan` verbose
       output.

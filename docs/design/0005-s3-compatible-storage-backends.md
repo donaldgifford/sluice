@@ -137,11 +137,14 @@ shape — no error surfaces), and there are no versions to reference.
   keys are not AWS IAM identities, so the client must be STS-free exactly as the
   Terragrunt profile's `skip_credentials_validation` /
   `skip_requesting_account_id` / `skip_metadata_api_check` require.
-- Capability probe at startup (before any read): `GetBucketVersioning` plus a
-  scratch-key conditional-write round-trip (`Put` with `If-None-Match`, then
-  `Put` with a wrong `If-Match`, delete the key). The probe result selects the
-  backend mode (see below) and is printed in `plan` verbose output so the mode
-  is always reviewable. Probes use a `_sluice/probe/` prefix the reader ignores.
+- Capability probe at startup (before any read): a scratch-key conditional-write
+  round-trip (`Put` with `If-None-Match`, repeat, then `Put` with a wrong
+  `If-Match`, delete the key) — behavioral, through the `Bucket` interface,
+  which exposes no versioning API to call. An empty version ID on the first put
+  means unversioned; missing conflicts mean ignored preconditions. The probe
+  result selects the backend mode (see below) and is printed in `plan` verbose
+  output so the mode is always reviewable. Probes use a `_sluice/probe/` prefix
+  the reader ignores.
 
 ### Degraded guarantees
 
