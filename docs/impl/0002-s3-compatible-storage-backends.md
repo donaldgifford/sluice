@@ -100,7 +100,7 @@ change when `endpoint` is null.
       `BaseEndpoint` + `UsePathStyle`, checksums to when-required only, static
       credential chain, no STS/account/metadata calls; refuse non-TLS endpoints
       except loopback.
-- [ ] Update `docs/sluice-spec.md` HCL schema for the two new attributes.
+- [x] Update `docs/sluice-spec.md` HCL schema for the two new attributes.
 
 #### Success Criteria
 
