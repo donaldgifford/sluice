@@ -86,11 +86,11 @@ change when `endpoint` is null.
 
 #### Tasks
 
-- [ ] Add `endpoint` (optional string) and `path_style` (optional bool, default
+- [x] Add `endpoint` (optional string) and `path_style` (optional bool, default
       false) to the `mirror` HCL block (`internal/config/load.go`); `endpoint`
       must parse as an http(s) URL, `path_style` required true when `endpoint`
       is set.
-- [ ] Plumb through `Mirror` model (`internal/config/config.go`) with validation
+- [x] Plumb through `Mirror` model (`internal/config/config.go`) with validation
       errors matching the existing `Missing required argument` style;
       table-driven tests in `load_test.go` / `validate_test.go`.
 - [ ] Add `SLUICE_S3_ENDPOINT` / `SLUICE_S3_PATH_STYLE` overrides with

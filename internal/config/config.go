@@ -21,6 +21,15 @@ type Mirror struct {
 	Bucket string
 	Region string
 
+	// Endpoint selects an S3-compatible backend (DESIGN-0005): an
+	// http(s) URL for the S3 API. Empty means AWS, addressed through
+	// the default endpoint chain.
+	Endpoint string
+
+	// PathStyle forces path-style addressing (host/bucket/key), which
+	// S3-compatible backends mandate. Required when Endpoint is set.
+	PathStyle bool
+
 	Platforms []Platform
 
 	// SigningKeyFiles are paths to armored public-key exports that

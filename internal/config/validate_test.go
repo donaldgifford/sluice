@@ -362,3 +362,125 @@ provider "hashicorp/aws" {
 		"version constraints are not supported",
 	})
 }
+
+func TestMirrorEndpointValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		src  string
+		want []string
+	}{
+		{
+			name: "endpoint without path style",
+			src: `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
+  endpoint  = "https://s3.internal"
+}
+`,
+			want: []string{"mirror: path_style must be true when endpoint is set"},
+		},
+		{
+			name: "non-URL endpoint",
+			src: `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
+  endpoint  = "notaurl"
+  path_style = true
+}
+`,
+			want: []string{`mirror: endpoint "notaurl" is not a valid http(s) URL`},
+		},
+		{
+			name: "non-http scheme endpoint",
+			src: `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
+  endpoint  = "ftp://s3.internal/mirror"
+  path_style = true
+}
+`,
+			want: []string{`is not a valid http(s) URL`},
+		},
+		{
+			name: "missing host endpoint",
+			src: `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
+  endpoint  = "https://"
+  path_style = true
+}
+`,
+			want: []string{`is not a valid http(s) URL`},
+		},
+		{
+			name: "invalid URL and missing path style report together",
+			src: `mirror {
+  bucket    = "a"
+  region    = "us-east-1"
+  platforms = ["linux_amd64"]
+  endpoint  = "notaurl"
+}
+`,
+			want: []string{
+				`is not a valid http(s) URL`,
+				"path_style must be true when endpoint is set",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := loadBytes("test.hcl", []byte(tt.src))
+			assertValidationError(t, err, tt.want)
+		})
+	}
+}
+
+func TestMirrorEndpointPassCases(t *testing.T) {
+	t.Parallel()
+
+	src := `mirror {
+  bucket     = "a"
+  region     = "garage"
+  platforms  = ["linux_amd64"]
+  endpoint   = "https://s3.internal"
+  path_style = true
+}
+`
+	m, err := loadBytes("test.hcl", []byte(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if m.Mirror.Endpoint != "https://s3.internal" {
+		t.Fatalf("Endpoint = %q, want %q", m.Mirror.Endpoint, "https://s3.internal")
+	}
+	if !m.Mirror.PathStyle {
+		t.Fatal("PathStyle = false, want true")
+	}
+}
+
+func TestMirrorEndpointDefaultsEmpty(t *testing.T) {
+	t.Parallel()
+
+	// The shared header has no endpoint attributes: AWS path stays
+	// zero-valued.
+	m, err := loadBytes("test.hcl", []byte(header+`provider "registry.terraform.io/hashicorp/aws" {
+  versions = ["6.3.0"]
+}
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if m.Mirror.Endpoint != "" || m.Mirror.PathStyle {
+		t.Fatalf("Endpoint/PathStyle = %q/%v, want zero values",
+			m.Mirror.Endpoint, m.Mirror.PathStyle)
+	}
+}
