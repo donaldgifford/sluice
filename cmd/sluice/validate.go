@@ -17,10 +17,14 @@ func newValidateCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cf := addConfigFlags(cmd)
+	bf := addBackendFlags(cmd)
 
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		m, err := cf.load()
 		if err != nil {
+			return err
+		}
+		if err := bf.apply(m); err != nil {
 			return err
 		}
 		_, err = fmt.Fprintf(cmd.OutOrStdout(),

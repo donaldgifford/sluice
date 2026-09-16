@@ -21,6 +21,7 @@ func newApplyCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cf := addConfigFlags(cmd)
+	bf := addBackendFlags(cmd)
 	autoApprove := cmd.Flags().Bool("auto-approve", false, "skip the interactive confirmation")
 	jsonOut := cmd.Flags().Bool("json", false, "emit the machine-readable plan (requires --auto-approve)")
 	cosignKey := cmd.Flags().String("cosign-key", "",
@@ -31,6 +32,9 @@ func newApplyCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		m, err := cf.load()
 		if err != nil {
+			return err
+		}
+		if err := bf.apply(m); err != nil {
 			return err
 		}
 		b, err := newBucket(cmd.Context(), m)
