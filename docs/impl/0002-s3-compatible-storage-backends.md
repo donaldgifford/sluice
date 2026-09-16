@@ -1,7 +1,7 @@
 ---
 id: IMPL-0002
 title: "S3-Compatible Storage Backends"
-status: Draft
+status: In Progress
 author: Donald Gifford
 created: 2026-09-15
 ---
@@ -10,7 +10,7 @@ created: 2026-09-15
 
 # IMPL-0002: S3-Compatible Storage Backends
 
-**Status:** Draft **Author:** Donald Gifford **Date:** 2026-09-15
+**Status:** In Progress **Author:** Donald Gifford **Date:** 2026-09-15
 
 <!--toc:start-->
 
@@ -40,11 +40,8 @@ created: 2026-09-15
 Implement DESIGN-0005: run `sluice` plan/apply against S3-compatible storage
 (Garage as reference) with explicit endpoint configuration, a startup capability
 probe, and fail-closed degraded modes where the backend cannot deliver AWS
-semantics. Working baseline is the recommended resolution of each design open
-question (single `mirror`-block surface, fail-closed degraded apply,
-proxy-fronted website serving, static keys, generic probe-driven support,
-`_retired/` recycle bin); Phase 1 does not depend on the open questions, Phases
-2–3 assume them.
+semantics. DESIGN-0005's open questions are resolved all-(a) (2026-09-16); this
+plan implements those resolutions. Phase 1 is independent of them.
 
 **Implements:** DESIGN-0005 (program context: `docs/roadmap.md`; storage
 alternative to workstream 1's AWS path and workstream 2's bucket module)
@@ -192,14 +189,13 @@ Prove the whole chain and hand operators the runbook.
 
 - Garage sandbox (bucket + publisher/reader keys) for the degraded profile and
   e2e leg.
-- DESIGN-0005 open-question resolutions (working baseline is all-(a); Phase 1 is
-  independent of them).
+- DESIGN-0005 open questions, resolved all-(a) 2026-09-16 (no longer blocking).
 - Reverse-proxy host for the serving leg (operator-provided).
 
 ## Open Questions
 
-None here — tracked in DESIGN-0005's Open Questions (six items, recommended
-resolutions recorded). This plan assumes the all-(a) baseline.
+None here — decided in DESIGN-0005's Open Questions (six items, resolved all-(a)
+2026-09-16). This plan implements those resolutions.
 
 ## References
 
