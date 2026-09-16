@@ -18,8 +18,9 @@ import (
 )
 
 type applyOpts struct {
-	autoApprove bool
-	jsonOut     bool
+	autoApprove      bool
+	jsonOut          bool
+	allowUnversioned bool
 }
 
 // applyDeps are apply's injected collaborators; production wiring
@@ -71,7 +72,20 @@ func runApply(ctx context.Context, m *config.Manifest, deps applyDeps, opts appl
 		}
 	}
 
-	return publish.NewApplier(deps.bucket, deps.fetch, deps.signer, deps.log).Apply(ctx, plan, actual)
+	// Probe after confirmation so declined and empty runs stay
+	// write-free; refusal still precedes fetch, sign, and every
+	// mutation.
+	caps, err := publish.Probe(ctx, deps.bucket)
+	if err != nil {
+		return err
+	}
+	if caps.Mode == publish.ModeDegraded && !opts.allowUnversioned {
+		return fmt.Errorf("backend is %s: conditional writes or versioning unsupported — "+
+			"re-run with --allow-unversioned-backend to proceed without the single-writer guarantee",
+			caps.Summary())
+	}
+
+	return publish.NewApplier(deps.bucket, deps.fetch, deps.signer, deps.log, caps.Mode).Apply(ctx, plan, actual)
 }
 
 // confirm requires the literal "yes"; anything else — including EOF —

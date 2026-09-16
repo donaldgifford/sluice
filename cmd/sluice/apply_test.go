@@ -172,8 +172,9 @@ func TestRunApplyConfirmedEndToEnd(t *testing.T) {
 	}
 	// Removal semantics at the cmd level: 6.1.0 gone from the index,
 	// its doc deleted, its zip untouched (it was never in the fake,
-	// but the delete op list shows only the doc).
-	for _, op := range b.ops {
+	// but the delete op list shows only the doc). Probe scratch keys
+	// are not mirror state.
+	for _, op := range nonProbeOps(b) {
 		if strings.HasPrefix(op, "delete ") && !strings.Contains(op, "6.1.0.json") {
 			t.Errorf("unexpected delete: %s", op)
 		}
@@ -197,5 +198,84 @@ func TestRunApplyAutoApproveSkipsPrompt(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "Only 'yes' is accepted") {
 		t.Error("auto-approve must not prompt")
+	}
+}
+
+// degradedBucket returns a writable Garage-shaped fake: preconditions
+// silently ignored, no version IDs.
+func degradedBucket() *fakeBucket {
+	b := driftedBucket()
+	b.writable = true
+	b.degraded = true
+	return b
+}
+
+// nonProbeOps filters probe scratch keys: the gate tests assert on
+// mirror-state writes only.
+func nonProbeOps(b *fakeBucket) []string {
+	var out []string
+	for _, op := range b.ops {
+		key := strings.TrimPrefix(strings.TrimPrefix(op, "put "), "delete ")
+		if strings.HasPrefix(key, "_sluice/") {
+			continue
+		}
+		out = append(out, op)
+	}
+	return out
+}
+
+func TestRunApplyDegradedRefusesWithoutFlag(t *testing.T) {
+	b := degradedBucket()
+	deps, ff := testApplyDeps(b)
+	var out bytes.Buffer
+
+	err := runApply(context.Background(), loadPlanManifest(t), deps,
+		applyOpts{autoApprove: true}, strings.NewReader(""), &out)
+	if err == nil || !strings.Contains(err.Error(), "--allow-unversioned-backend") {
+		t.Fatalf("runApply() error = %v, want degraded refusal naming the flag", err)
+	}
+	// Refusal precedes fetch and every mirror-state write.
+	if ff.calls != 0 {
+		t.Errorf("fetch calls = %d, want none", ff.calls)
+	}
+	if ops := nonProbeOps(b); len(ops) != 0 {
+		t.Errorf("mirror ops = %v, want none", ops)
+	}
+}
+
+func TestRunApplyDegradedOptInProceeds(t *testing.T) {
+	installFakeCosign(t) // t.Setenv: no t.Parallel
+
+	b := degradedBucket()
+	var logOut bytes.Buffer
+	f := &fakeFetcher{}
+	deps := applyDeps{
+		bucket: b,
+		fetch:  f,
+		signer: publish.NewSigner("", "test-commit"),
+		log:    slog.New(slog.NewJSONHandler(&logOut, nil)),
+	}
+	var out bytes.Buffer
+
+	err := runApply(context.Background(), loadPlanManifest(t), deps,
+		applyOpts{autoApprove: true, allowUnversioned: true}, strings.NewReader(""), &out)
+	if err != nil {
+		t.Fatalf("runApply() unexpected error: %v", err)
+	}
+	if f.calls == 0 {
+		t.Error("opted-in degraded apply fetched nothing")
+	}
+	if !strings.Contains(logOut.String(), "degraded backend") {
+		t.Errorf("no degraded WARN in audit log: %s", logOut.String())
+	}
+	// Yanked 6.1.0 retired (degraded mode keeps forensics under _retired/).
+	found := false
+	for _, op := range b.ops {
+		if op == "put _retired/"+awsSrc+"/6.1.0.json" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("ops = %v, want retired 6.1.0 doc", b.ops)
 	}
 }

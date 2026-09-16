@@ -116,17 +116,18 @@ Probe, mode selection, fail-closed apply, and degraded audit semantics.
 
 #### Tasks
 
-- [x] Implement the startup probe (`GetBucketVersioning` + scratch-key
-      `If-None-Match` / wrong-`If-Match` round-trip + cleanup under
-      `_sluice/probe/`); run before any read, print mode in `plan` verbose
-      output.
-- [ ] Fail-closed `apply`: refuse degraded backends pre-mutation without
+- [x] Implement the startup probe (behavioral scratch-key `If-None-Match` /
+      wrong-`If-Match` round-trip + cleanup under `_sluice/probe/` — the
+      `Bucket` interface exposes no versioning API to call); plan `--verbose`
+      probes pre-read and prints the mode, apply probes post-confirm so declined
+      and empty runs stay write-free.
+- [x] Fail-closed `apply`: refuse degraded backends pre-mutation without
       `--allow-unversioned-backend`, error naming the missing capability;
       degraded applies log the weakening to the audit trail.
-- [ ] Degraded audit refs: empty `version_id` fields; document permanent yank.
-- [ ] `_retired/` recycle-bin copy-before-delete on yank in degraded mode
+- [x] Degraded audit refs: empty `version_id` fields; document permanent yank.
+- [x] `_retired/` recycle-bin copy-before-delete on yank in degraded mode
       (retention-managed prefix).
-- [ ] Unit tests with a stubbed `Bucket` for probe outcomes, fail-closed
+- [x] Unit tests with a stubbed `Bucket` for probe outcomes, fail-closed
       refusal, and opt-in apply paths.
 
 #### Success Criteria

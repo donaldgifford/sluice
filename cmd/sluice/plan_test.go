@@ -19,10 +19,12 @@ import (
 )
 
 // fakeBucket is read-only by default — plan must never write; apply
-// tests flip writable.
+// tests flip writable. degraded emulates Garage-shaped backends:
+// preconditions silently ignored, no version IDs.
 type fakeBucket struct {
 	objects  map[string][]byte
 	writable bool
+	degraded bool
 	ops      []string
 }
 
@@ -39,14 +41,19 @@ func (f *fakeBucket) Put(_ context.Context, key, _ string, body []byte, cond pub
 		return "", errors.New("plan must never write")
 	}
 	_, exists := f.objects[key]
-	if cond.IfNoneMatch && exists {
-		return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
-	}
-	if cond.IfMatch != "" && (!exists || cond.IfMatch != "etag-"+key) {
-		return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
+	if !f.degraded {
+		if cond.IfNoneMatch && exists {
+			return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
+		}
+		if cond.IfMatch != "" && (!exists || cond.IfMatch != "etag-"+key) {
+			return "", fmt.Errorf("fake put %s: %w", key, publish.ErrConflict)
+		}
 	}
 	f.objects[key] = append([]byte(nil), body...)
 	f.ops = append(f.ops, "put "+key)
+	if f.degraded {
+		return "", nil
+	}
 	return "vid-" + key, nil
 }
 
@@ -214,5 +221,43 @@ func TestExitCode(t *testing.T) {
 				t.Errorf("exitCode(%v) = %d, want %d", tt.err, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRunPlanVerbosePrintsBackendMode(t *testing.T) {
+	t.Parallel()
+
+	b := driftedBucket()
+	b.writable = true // probe scratch keys only; asserted below
+	var out bytes.Buffer
+	err := runPlan(context.Background(), loadPlanManifest(t), b,
+		planOpts{verbose: true}, &out)
+	if err != nil {
+		t.Fatalf("runPlan() unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "Backend mode: full\n") {
+		t.Errorf("output = %q, want backend mode line", out.String())
+	}
+	// Verbose probes, but mirror state is untouched.
+	for _, op := range b.ops {
+		if strings.HasPrefix(op, "put _sluice/") || strings.HasPrefix(op, "delete _sluice/") {
+			continue
+		}
+		t.Errorf("non-probe op %q during verbose plan", op)
+	}
+}
+
+func TestRunPlanNonVerboseSkipsProbe(t *testing.T) {
+	t.Parallel()
+
+	b := driftedBucket() // read-only: any probe write fails the run
+	var out bytes.Buffer
+	err := runPlan(context.Background(), loadPlanManifest(t), b,
+		planOpts{}, &out)
+	if err != nil {
+		t.Fatalf("runPlan() unexpected error: %v", err)
+	}
+	if strings.Contains(out.String(), "Backend mode:") {
+		t.Errorf("output = %q, want no mode line without --verbose", out.String())
 	}
 }

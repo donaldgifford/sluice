@@ -26,6 +26,21 @@ var errChangesPresent = errors.New("plan: changes present")
 type planOpts struct {
 	jsonOut  bool
 	detailed bool
+	verbose  bool
+}
+
+// printBackendMode probes the bucket and prints its capability tier.
+// JSON output stays pure: the line renders on human output only.
+func printBackendMode(ctx context.Context, b publish.Bucket, jsonOut bool, out io.Writer) error {
+	caps, err := publish.Probe(ctx, b)
+	if err != nil {
+		return err
+	}
+	if jsonOut {
+		return nil
+	}
+	_, err = io.WriteString(out, "Backend mode: "+caps.Summary()+"\n")
+	return err
 }
 
 // computePlan is the shared read-diff step: plan uses it standalone,
@@ -47,6 +62,14 @@ func computePlan(ctx context.Context, m *config.Manifest, b publish.Bucket) (*mi
 }
 
 func runPlan(ctx context.Context, m *config.Manifest, b publish.Bucket, opts planOpts, out io.Writer) error {
+	// Verbose probes first so the mode line precedes the diff; the
+	// non-verbose path is probe-free, keeping plan's read-only shape
+	// for mirror state (probe scratch keys are transient and cleaned).
+	if opts.verbose {
+		if err := printBackendMode(ctx, b, opts.jsonOut, out); err != nil {
+			return err
+		}
+	}
 	plan, actual, err := computePlan(ctx, m, b)
 	if err != nil {
 		return err

@@ -60,7 +60,7 @@ func newTestApplier(t *testing.T, b Bucket) (*Applier, *fakeFetcher, *bytes.Buff
 	f := &fakeFetcher{}
 	s, _ := newTestSigner(t, "", "v2.6.1")
 	var logBuf bytes.Buffer
-	a := NewApplier(b, f, s, slog.New(slog.NewJSONHandler(&logBuf, nil)))
+	a := NewApplier(b, f, s, slog.New(slog.NewJSONHandler(&logBuf, nil)), ModeFull)
 	return a, f, &logBuf
 }
 
@@ -348,7 +348,7 @@ func TestApplyPreflightFailureTouchesNothing(t *testing.T) {
 	b := newFakeBucket()
 	f := &fakeFetcher{}
 	s, _ := newTestSigner(t, "", "v1.13.7") // below the floor
-	a := NewApplier(b, f, s, slog.New(slog.NewJSONHandler(&bytes.Buffer{}, nil)))
+	a := NewApplier(b, f, s, slog.New(slog.NewJSONHandler(&bytes.Buffer{}, nil)), ModeFull)
 
 	desired := nullState(map[string][]string{"3.2.4": {"linux_amd64"}})
 	plan, actual := planAgainst(t, b, desired)
@@ -441,5 +441,120 @@ func TestExpiredSigningKeyWarns(t *testing.T) {
 	// The publish audit trail is unchanged by the override.
 	if got := strings.Count(out, `"action":"publish"`); got != 2 {
 		t.Errorf("publish audit lines = %d, want 2", got)
+	}
+}
+
+// degradedTestApplier builds an Applier in degraded mode with a
+// captured log, mirroring newTestApplier.
+func degradedTestApplier(t *testing.T, b Bucket) (*Applier, *bytes.Buffer) {
+	t.Helper()
+
+	f := &fakeFetcher{}
+	s, _ := newTestSigner(t, "", "v2.6.1")
+	var logBuf bytes.Buffer
+	return NewApplier(b, f, s, slog.New(slog.NewJSONHandler(&logBuf, nil)), ModeDegraded), &logBuf
+}
+
+// seedRemovableVersion stages one mirrored version (index entry, doc,
+// zip, signature) for yank tests.
+func seedRemovableVersion(b *fakeBucket) {
+	b.seed(indexKey(nullSrc), []byte(`{"versions":{"3.2.3":{}}}`))
+	b.seed(versionKey(nullSrc, "3.2.3"),
+		[]byte(`{"archives":{"linux_amd64":{"url":"old.zip","hashes":["h1:old"]}}}`))
+	b.seed(zipKey(nullSrc, "old.zip"), []byte("old zip bytes"))
+	b.seed(zipKey(nullSrc, "old.zip")+".sig", []byte("old sig bytes"))
+}
+
+func removeOnlyPlan(t *testing.T, b Bucket) (*mirror.Plan, *Actual) {
+	t.Helper()
+
+	desired := nullState(map[string][]string{})
+	plan, actual := planAgainst(t, b, desired)
+	if len(plan.Remove) != 1 {
+		t.Fatalf("plan = %+v, want one remove", plan)
+	}
+	return plan, actual
+}
+
+func TestApplyDegradedWarnsInAuditTrail(t *testing.T) {
+	t.Parallel()
+
+	b := newFakeBucket()
+	seedRemovableVersion(b)
+	a, logBuf := degradedTestApplier(t, b)
+	plan, actual := removeOnlyPlan(t, b)
+
+	if err := a.Apply(context.Background(), plan, actual); err != nil {
+		t.Fatalf("Apply() unexpected error: %v", err)
+	}
+	out := logBuf.String()
+	if !strings.Contains(out, `"level":"WARN"`) || !strings.Contains(out, "degraded backend") {
+		t.Errorf("no degraded WARN line in audit trail: %s", out)
+	}
+	// The retract audit lines still emit.
+	if got := strings.Count(out, `"action":"retract"`); got != 1 {
+		t.Errorf("retract audit lines = %d, want 1", got)
+	}
+}
+
+func TestApplyDegradedRetiresYankedArtifacts(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	b := newFakeBucket()
+	seedRemovableVersion(b)
+	a, _ := degradedTestApplier(t, b)
+	plan, actual := removeOnlyPlan(t, b)
+
+	if err := a.Apply(ctx, plan, actual); err != nil {
+		t.Fatalf("Apply() unexpected error: %v", err)
+	}
+
+	// Doc, zip, and signature copied under _retired/ with equal bytes.
+	if got, _, err := b.Get(ctx, retiredPrefix+versionKey(nullSrc, "3.2.3")); err != nil {
+		t.Fatalf("retired doc: %v", err)
+	} else if string(got) != `{"archives":{"linux_amd64":{"url":"old.zip","hashes":["h1:old"]}}}` {
+		t.Errorf("retired doc = %s", got)
+	}
+	if got, _, err := b.Get(ctx, retiredPrefix+zipKey(nullSrc, "old.zip")); err != nil {
+		t.Fatalf("retired zip: %v", err)
+	} else if string(got) != "old zip bytes" {
+		t.Errorf("retired zip = %s", got)
+	}
+	if got, _, err := b.Get(ctx, retiredPrefix+zipKey(nullSrc, "old.zip")+".sig"); err != nil {
+		t.Fatalf("retired sig: %v", err)
+	} else if string(got) != "old sig bytes" {
+		t.Errorf("retired sig = %s", got)
+	}
+
+	// Originals: doc deleted, zip stays (never deleted on retract).
+	if _, _, err := b.Get(ctx, versionKey(nullSrc, "3.2.3")); !errors.Is(err, ErrNotFound) {
+		t.Error("removed version doc still present")
+	}
+	if _, _, err := b.Get(ctx, zipKey(nullSrc, "old.zip")); err != nil {
+		t.Error("zip must never be deleted on retract")
+	}
+}
+
+func TestApplyFullModeDoesNotRetire(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	b := newFakeBucket()
+	seedRemovableVersion(b)
+	a, _, _ := newTestApplier(t, b)
+	plan, actual := removeOnlyPlan(t, b)
+
+	if err := a.Apply(ctx, plan, actual); err != nil {
+		t.Fatalf("Apply() unexpected error: %v", err)
+	}
+	keys, err := b.List(ctx, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, k := range keys {
+		if strings.HasPrefix(k, retiredPrefix) {
+			t.Errorf("full-mode apply left retired key %q", k)
+		}
 	}
 }
