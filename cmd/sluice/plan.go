@@ -16,6 +16,7 @@ func newPlanCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cf := addConfigFlags(cmd)
+	bf := addBackendFlags(cmd)
 	jsonOut := cmd.Flags().Bool("json", false, "emit the machine-readable plan schema")
 	detailed := cmd.Flags().Bool("detailed-exitcode", false,
 		"exit 2 when changes are present (0 clean, 1 error)")
@@ -23,6 +24,9 @@ func newPlanCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		m, err := cf.load()
 		if err != nil {
+			return err
+		}
+		if err := bf.apply(m); err != nil {
 			return err
 		}
 		b, err := newBucket(cmd.Context(), m)

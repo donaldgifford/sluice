@@ -93,8 +93,9 @@ change when `endpoint` is null.
 - [x] Plumb through `Mirror` model (`internal/config/config.go`) with validation
       errors matching the existing `Missing required argument` style;
       table-driven tests in `load_test.go` / `validate_test.go`.
-- [ ] Add `SLUICE_S3_ENDPOINT` / `SLUICE_S3_PATH_STYLE` overrides with
-      explicit-flags-beat-env-beats-HCL precedence.
+- [x] Add `SLUICE_S3_ENDPOINT` / `SLUICE_S3_PATH_STYLE` overrides with
+      explicit-flags-beat-env-beats-HCL precedence (plus `--s3-endpoint` /
+      `--s3-path-style` flags as the explicit tier).
 - [ ] Extend `newBucket` (`cmd/sluice/bucket.go`): endpoint set →
       `BaseEndpoint` + `UsePathStyle`, checksums to when-required only, static
       credential chain, no STS/account/metadata calls; refuse non-TLS endpoints
