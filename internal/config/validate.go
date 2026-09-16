@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -105,9 +106,22 @@ func buildMirror(raw *mirrorHCL, is *issues) Mirror {
 			is.add("mirror", "signing_key_files must not contain empty paths")
 		}
 	}
+	if raw.Endpoint != "" {
+		u, err := url.Parse(raw.Endpoint)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			is.add("mirror", fmt.Sprintf(
+				"endpoint %q is not a valid http(s) URL; give the S3 API base URL or omit endpoint for AWS",
+				raw.Endpoint))
+		}
+		if !raw.PathStyle {
+			is.add("mirror", "path_style must be true when endpoint is set; S3-compatible backends require path-style addressing")
+		}
+	}
 	return Mirror{
 		Bucket:          raw.Bucket,
 		Region:          raw.Region,
+		Endpoint:        raw.Endpoint,
+		PathStyle:       raw.PathStyle,
 		Platforms:       parsePlatforms("mirror", raw.Platforms, is),
 		SigningKeyFiles: raw.SigningKeyFiles,
 	}

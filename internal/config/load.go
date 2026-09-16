@@ -48,6 +48,12 @@ type mirrorHCL struct {
 	Region          string   `hcl:"region"`
 	Platforms       []string `hcl:"platforms"`
 	SigningKeyFiles []string `hcl:"signing_key_files,optional"`
+
+	// Endpoint selects an S3-compatible backend (DESIGN-0005); empty
+	// means AWS. PathStyle is required alongside it — compatibles
+	// mandate path-style addressing.
+	Endpoint  string `hcl:"endpoint,optional"`
+	PathStyle bool   `hcl:"path_style,optional"`
 }
 
 type providerHCL struct {
