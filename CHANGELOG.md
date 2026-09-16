@@ -12,6 +12,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(design)* Fold OIDC-out-of-band assumption into DESIGN-0002
 - *(design)* Add DESIGN-0005 and IMPL-0002 for S3-compatible backends
 - *(design)* Resolve DESIGN-0005 open questions all-(a), start IMPL-0002
+- *(design)* Source serving origin from mirror_url override, scope to sandbox-free legs
 
 ### Miscellaneous Tasks
 
