@@ -31,18 +31,22 @@ type Fetcher interface {
 var uploadSuffixes = []string{".sig", ".pem", ".intoto.jsonl"}
 
 // Applier executes a plan against the bucket. Construct with
-// [NewApplier].
+// [NewApplier]. Mode selects the backend tier from [Probe]: Full
+// keeps conditional writes and versioned audit refs; Degraded warns
+// once per apply and retires yanked artifacts under _retired/,
+// since nothing versions them.
 type Applier struct {
 	bucket Bucket
 	fetch  Fetcher
 	signer *Signer
 	log    *slog.Logger
+	mode   Mode
 }
 
 // NewApplier wires the applier's dependencies. log receives the
 // audit lines; pass slog.Default() in production.
-func NewApplier(b Bucket, f Fetcher, s *Signer, log *slog.Logger) *Applier {
-	return &Applier{bucket: b, fetch: f, signer: s, log: log}
+func NewApplier(b Bucket, f Fetcher, s *Signer, log *slog.Logger, mode Mode) *Applier {
+	return &Applier{bucket: b, fetch: f, signer: s, log: log, mode: mode}
 }
 
 // Apply executes the plan. Per provider, in the plan's deterministic
@@ -57,6 +61,12 @@ func NewApplier(b Bucket, f Fetcher, s *Signer, log *slog.Logger) *Applier {
 func (a *Applier) Apply(ctx context.Context, plan *mirror.Plan, actual *Actual) (err error) {
 	if plan.Empty() {
 		return nil
+	}
+	if a.mode == ModeDegraded {
+		// Every degraded apply says so in the audit trail: no
+		// conditional writes guarded it and no versions record it.
+		a.log.WarnContext(ctx, "degraded backend: single-writer guarantee and versioned audit refs unavailable",
+			slog.String("backend_mode", string(a.mode)))
 	}
 	// Fail closed before any fetch or write: no cosign, no apply.
 	if err := a.signer.Preflight(ctx); err != nil {
@@ -243,9 +253,17 @@ func (a *Applier) writeVersionDocs(ctx context.Context, w *providerWork, actual 
 
 // retract deletes removed version documents after the index rewrite:
 // consumers never see a listed-but-missing version document, and our
-// own fail-closed reader never trips on sluice-authored state.
+// own fail-closed reader never trips on sluice-authored state. On
+// degraded backends yanked artifacts are retired under _retired/
+// first — nothing versions them, so deletion without a copy would
+// destroy the forensics record.
 func (a *Applier) retract(ctx context.Context, w *providerWork, actual *Actual) error {
 	for _, ver := range w.removes {
+		if a.mode == ModeDegraded {
+			if err := a.retire(ctx, w.source, ver, actual); err != nil {
+				return err
+			}
+		}
 		vid, err := a.bucket.Delete(ctx, versionKey(w.source, ver))
 		if err != nil {
 			return err
@@ -259,6 +277,44 @@ func (a *Applier) retract(ctx context.Context, w *providerWork, actual *Actual) 
 				action: "retract", provider: w.source, version: ver,
 				platform: plat, h1: h1, s3VersionID: vid,
 			})
+		}
+	}
+	return nil
+}
+
+// retiredPrefix namespaces recycle-bin copies of yanked artifacts on
+// degraded backends. Depth keeps them clear of source discovery (see
+// keys.go), like the probe prefix.
+const retiredPrefix = "_retired/"
+
+// retire copies a yanked version's document, zips, and any present
+// signing outputs under _retired/ before deletion — the degraded-mode
+// forensics substitute where no versions exist. Absent objects are
+// skipped (keyless signing emits no certificate); a copy failure
+// aborts before any delete, so a failed retire never loses bytes.
+func (a *Applier) retire(ctx context.Context, source, version string, actual *Actual) error {
+	type obj struct {
+		key         string
+		contentType string
+	}
+	objs := make([]obj, 0, 1+(1+len(uploadSuffixes))*len(actual.Docs[source][version].Archives))
+	objs = append(objs, obj{versionKey(source, version), "application/json"})
+	for _, doc := range actual.Docs[source][version].Archives {
+		objs = append(objs, obj{zipKey(source, doc.URL), "application/zip"})
+		for _, suffix := range uploadSuffixes {
+			objs = append(objs, obj{zipKey(source, doc.URL) + suffix, "application/octet-stream"})
+		}
+	}
+	for _, o := range objs {
+		body, _, err := a.bucket.Get(ctx, o.key)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("retiring %s: %w", o.key, err)
+		}
+		if _, err := a.bucket.Put(ctx, retiredPrefix+o.key, o.contentType, body, Cond{}); err != nil {
+			return fmt.Errorf("retiring %s: %w", o.key, err)
 		}
 	}
 	return nil

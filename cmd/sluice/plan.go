@@ -20,6 +20,8 @@ func newPlanCmd() *cobra.Command {
 	jsonOut := cmd.Flags().Bool("json", false, "emit the machine-readable plan schema")
 	detailed := cmd.Flags().Bool("detailed-exitcode", false,
 		"exit 2 when changes are present (0 clean, 1 error)")
+	verbose := cmd.Flags().Bool("verbose", false,
+		"probe the backend and print its capability mode (human output only)")
 
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		m, err := cf.load()
@@ -34,7 +36,7 @@ func newPlanCmd() *cobra.Command {
 			return err
 		}
 		return runPlan(cmd.Context(), m, b,
-			planOpts{jsonOut: *jsonOut, detailed: *detailed}, cmd.OutOrStdout())
+			planOpts{jsonOut: *jsonOut, detailed: *detailed, verbose: *verbose}, cmd.OutOrStdout())
 	}
 	return cmd
 }

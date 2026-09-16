@@ -28,6 +28,8 @@ func newApplyCmd() *cobra.Command {
 		"cosign key reference (KMS URI or file); empty uses keyless OIDC")
 	commit := cmd.Flags().String("authorizing-commit", os.Getenv("GITHUB_SHA"),
 		"commit recorded in attestations (defaults to $GITHUB_SHA)")
+	allowUnversioned := cmd.Flags().Bool("allow-unversioned-backend", false,
+		"proceed on backends without conditional writes/versioning (degraded mode)")
 
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		m, err := cf.load()
@@ -52,7 +54,7 @@ func newApplyCmd() *cobra.Command {
 			log:    slog.Default(),
 		}
 		return runApply(cmd.Context(), m, deps,
-			applyOpts{autoApprove: *autoApprove, jsonOut: *jsonOut},
+			applyOpts{autoApprove: *autoApprove, jsonOut: *jsonOut, allowUnversioned: *allowUnversioned},
 			cmd.InOrStdin(), cmd.OutOrStdout())
 	}
 	return cmd

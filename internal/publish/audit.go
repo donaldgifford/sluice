@@ -11,7 +11,10 @@ import (
 // auditEntry is one publish/retract event. Every field is always
 // emitted; empty strings mark the unknowable (sha256 and signing key
 // on retract — the mirror protocol stores neither; s3_version_id on
-// unversioned buckets, where its emptiness is itself a signal).
+// unversioned buckets, where its emptiness is itself a signal). Yank
+// is permanent on degraded backends — nothing versions the deleted
+// objects — so retracts there are covered by _retired/ copies (see
+// Applier) rather than prior versions.
 type auditEntry struct {
 	action       string // "publish" or "retract"
 	provider     string

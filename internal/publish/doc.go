@@ -27,4 +27,11 @@
 // manifest must still be seen for removal to work); content is then
 // read only from the discovered indexes and the version documents
 // they reference.
+//
+// Backend tiers ([Mode], selected by [Probe]): Full backends version
+// objects and honor conditional writes — the contract above holds
+// verbatim. Degraded backends do at least one of neither: apply fails
+// closed without an explicit opt-in, opted-in applies warn once in
+// the audit trail, yanked artifacts retire under _retired/ instead of
+// versioning, and audit version IDs are empty.
 package publish

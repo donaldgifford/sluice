@@ -184,9 +184,9 @@ key verifies strictly.
 
 ```text
 sluice validate  [--config-dir DIR | --config-file FILE] [--s3-endpoint URL] [--s3-path-style]
-sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode] [--s3-endpoint URL] [--s3-path-style]
+sluice plan      [--config-dir DIR | --config-file FILE] [--json] [--detailed-exitcode] [--verbose] [--s3-endpoint URL] [--s3-path-style]
 sluice apply     [--config-dir DIR | --config-file FILE] [--auto-approve] [--json]
-                 [--cosign-key REF] [--authorizing-commit SHA] [--s3-endpoint URL] [--s3-path-style]
+                 [--cosign-key REF] [--authorizing-commit SHA] [--allow-unversioned-backend] [--s3-endpoint URL] [--s3-path-style]
 sluice export    [--config-dir DIR | --config-file FILE] [--out FILE] [--s3-endpoint URL] [--s3-path-style]
 sluice bootstrap PATH... [--out FILE]
 ```
@@ -273,6 +273,11 @@ plan file: `apply` re-reads the bucket and re-computes the diff itself, so the
 ETag it conditions on is the one it just read, and the read→confirm→write window
 it guards is its own. Index is the atomic publish; a precondition failure means
 concurrent modification → abort with exit 3 and a message to re-plan.
+
+Degraded backends (DESIGN-0005: no versioning or ignored preconditions, as
+detected by the startup probe) refuse `apply` pre-mutation with exit 1 unless
+`--allow-unversioned-backend` is given; opted-in applies warn once in the audit
+trail and retire yanked artifacts under `_retired/` instead of versioning them.
 
 Signing identity comes from `--cosign-key` (a KMS URI or key file; empty means
 keyless OIDC) and `--authorizing-commit` (defaults to `$GITHUB_SHA`). There is
