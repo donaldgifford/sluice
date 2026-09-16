@@ -235,7 +235,10 @@ Worked path (Garage v2.x):
    setting once upstream lands it) and front the website endpoint with a reverse
    proxy that maps `https://mirror.internal/<key>` to the bucket's `Host`-routed
    origin and adds TLS plus IP allowlisting. Terraform's mirror client only ever
-   issues `GET <prefix>/<path>` — any static origin works.
+   issues `GET <prefix>/<path>` — any static origin works. The canonical serving
+   origin is the mirror-bucket module's `mirror_url` output (override-supported
+   for non-AWS origins — libtftest-tf-modules#124); `.terraformrc` and the
+   canary consume that value, not a hand-written URL.
 3. Manifest:
    `mirror { bucket = "<mirror>", region = "garage", endpoint = "https://s3.internal", path_style = true }`,
    keys in the environment, probe confirms degraded mode on first `plan`.

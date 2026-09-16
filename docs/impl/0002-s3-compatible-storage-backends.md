@@ -147,7 +147,8 @@ Prove the whole chain and hand operators the runbook.
       as the full-mode fixture); add the degraded-profile suite runnable against
       Garage.
 - [ ] Garage e2e leg: apply to Garage, `terraform init` through the
-      website-endpoint proxy as the sole provider source.
+      website-endpoint proxy as the sole provider source (origin taken from the
+      mirror-bucket module's `mirror_url`, override for Garage).
 - [ ] Document the Caddy serving recipe (path→`Host` mapping, TLS, IP allowlist)
       and the worked Garage setup (bucket, keys, grants, manifest) in the ops
       runbook.
@@ -184,6 +185,8 @@ Prove the whole chain and hand operators the runbook.
       generalized endpoint seam.
 - [ ] E2E init oracle green against the Garage serving origin.
 - [ ] Coverage floor holds (`just coverage-gate`); `just ci` green.
+- [ ] Scope holds: every leg runs without an AWS sandbox or VPCE (plan suites,
+      LocalStack, Garage); AWS live evaluation stays deferred.
 
 ## Dependencies
 
