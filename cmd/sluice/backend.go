@@ -5,12 +5,20 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
 
 	"github.com/donaldgifford/sluice/internal/config"
+)
+
+// URL schemes accepted for an S3 endpoint (shared with bucket.go;
+// goconst keeps the repeated literal in one place).
+const (
+	httpScheme  = "http"
+	httpsScheme = "https"
 )
 
 // backendFlags carries the S3-backend overrides shared by every command
@@ -61,6 +69,16 @@ func (bf *backendFlags) resolve(m *config.Manifest) (string, bool, error) {
 		pathStyle = bf.pathStyle
 	}
 
+	// Flag and environment values bypass HCL validation, so the shape
+	// check lives here too: every command sees one valid config.
+	if endpoint != "" {
+		u, err := url.Parse(endpoint)
+		if err != nil || (u.Scheme != httpScheme && u.Scheme != httpsScheme) || u.Host == "" {
+			return "", false, fmt.Errorf(
+				"endpoint %q is not a valid http(s) URL; give the S3 API base URL or omit endpoint for AWS",
+				endpoint)
+		}
+	}
 	if endpoint != "" && !pathStyle {
 		return "", false, fmt.Errorf(
 			"path_style must be true when endpoint is set; S3-compatible " +
