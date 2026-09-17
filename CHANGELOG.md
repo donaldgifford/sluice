@@ -5,6 +5,15 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/).
 ## [unreleased]
 
+### Features
+
+- *(config)* Add mirror endpoint and path_style for S3-compatibles
+- *(cli)* Add s3-endpoint overrides with flags-beat-env-beats-HCL precedence
+- *(cli)* Wire S3-compatible endpoint into bucket construction
+- *(publish)* Add backend capability probe with scratch-key round trip
+- *(apply)* Fail-closed degraded mode with opt-in flag and retire
+- *(test)* Generalize S3 seam, add Garage degraded suite and e2e runbook
+
 ### Documentation
 
 - *(design)* Mark DESIGN-0001 Implemented for v0.0.1
@@ -13,6 +22,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - *(design)* Add DESIGN-0005 and IMPL-0002 for S3-compatible backends
 - *(design)* Resolve DESIGN-0005 open questions all-(a), start IMPL-0002
 - *(design)* Source serving origin from mirror_url override, scope to sandbox-free legs
+- *(spec)* Document mirror endpoint surface and backend precedence
 
 ### Miscellaneous Tasks
 
