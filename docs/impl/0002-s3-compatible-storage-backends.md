@@ -145,17 +145,19 @@ Prove the whole chain and hand operators the runbook.
 
 #### Tasks
 
-- [ ] Generalize the integration seam to `SLUICE_S3_ENDPOINT` (keep LocalStack
+- [x] Generalize the integration seam to `SLUICE_S3_ENDPOINT` (keep LocalStack
       as the full-mode fixture); add the degraded-profile suite runnable against
       Garage.
-- [ ] Garage e2e leg: apply to Garage, `terraform init` through the
+- [x] Garage e2e leg: apply to Garage, `terraform init` through the
       website-endpoint proxy as the sole provider source (origin taken from the
-      mirror-bucket module's `mirror_url`, override for Garage).
-- [ ] Document the Caddy serving recipe (path→`Host` mapping, TLS, IP allowlist)
+      mirror-bucket module's `mirror_url`, override for Garage). Proven
+      2026-09-16 per `docs/runbooks/garage-mirror-e2e.md`.
+- [x] Document the Caddy serving recipe (path→`Host` mapping, TLS, IP allowlist)
       and the worked Garage setup (bucket, keys, grants, manifest) in the ops
       runbook.
 - [ ] Sandbox canary: one consumer on the Garage mirror with a green week of
-      drift backstop before any fleet move.
+      drift backstop before any fleet move. `deferred - human required`: needs
+      persistent Garage + proxy infrastructure and a calendar week.
 
 #### Success Criteria
 
@@ -168,25 +170,31 @@ Prove the whole chain and hand operators the runbook.
 
 ## File Changes
 
-| File                         | Action | Description                                      |
-| ---------------------------- | ------ | ------------------------------------------------ |
-| `internal/config/load.go`    | Modify | `endpoint` / `path_style` HCL attributes         |
-| `internal/config/config.go`  | Modify | `Mirror` model fields                            |
-| `internal/config/*_test.go`  | Modify | Validation table tests                           |
-| `cmd/sluice/bucket.go`       | Modify | Endpoint/path-style/checksum wiring, TLS refusal |
-| `internal/publish/probe.go`  | Create | Capability probe, mode selection                 |
-| `internal/publish/apply.go`  | Modify | Fail-closed degraded gate, audit warning         |
-| `internal/publish/*_test.go` | Modify | Probe and degraded-path unit tests               |
-| `docs/sluice-spec.md`        | Modify | HCL schema for new attributes                    |
+| File                                          | Action | Description                                              |
+| --------------------------------------------- | ------ | -------------------------------------------------------- |
+| `internal/config/load.go`                     | Modify | `endpoint` / `path_style` HCL attributes                 |
+| `internal/config/config.go`                   | Modify | `Mirror` model fields                                    |
+| `internal/config/*_test.go`                   | Modify | Validation table tests                                   |
+| `cmd/sluice/bucket.go` + `bucket_test.go`     | Modify | Endpoint/path-style/checksum wiring, TLS refusal + tests |
+| `cmd/sluice/backend.go` + `backend_test.go`   | Create | Flags/env/HCL precedence resolution + tests              |
+| `cmd/sluice/plan*.go` `apply*.go`             | Modify | `--verbose`, `--allow-unversioned-backend`, probe gating |
+| `internal/publish/probe.go` + `probe_test.go` | Create | Capability probe, mode selection + tests                 |
+| `internal/publish/apply.go`                   | Modify | Fail-closed degraded gate, audit warning, retire         |
+| `internal/publish/*_test.go`                  | Modify | Probe and degraded-path unit tests                       |
+| `internal/publish/integration_garage_test.go` | Create | Degraded-profile suite (Garage-gated)                    |
+| `docs/sluice-spec.md`                         | Modify | HCL schema, flags, degraded semantics                    |
+| `docs/runbooks/garage-mirror-e2e.md`          | Create | Proven Garage e2e procedure                              |
 
 ## Testing Plan
 
-- [ ] Unit tests for HCL validation, probe outcome matrix, and fail-closed /
+- [x] Unit tests for HCL validation, probe outcome matrix, and fail-closed /
       opt-in apply paths (stubbed `Bucket`).
-- [ ] Integration suite green on LocalStack (full) and Garage (degraded) via the
-      generalized endpoint seam.
-- [ ] E2E init oracle green against the Garage serving origin.
-- [ ] Coverage floor holds (`just coverage-gate`); `just ci` green.
+- [x] Integration suite green on LocalStack (full) and Garage (degraded) via the
+      generalized endpoint seam (both profiles verified live 2026-09-16; they
+      skip cleanly without backend env).
+- [x] E2E init oracle green against the Garage serving origin (proven 2026-09-16
+      per `docs/runbooks/garage-mirror-e2e.md`).
+- [x] Coverage floor holds (`just coverage-gate`); `just ci` green.
 - [ ] Scope holds: every leg runs without an AWS sandbox or VPCE (plan suites,
       LocalStack, Garage); AWS live evaluation stays deferred.
 

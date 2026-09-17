@@ -26,11 +26,16 @@ import (
 // localstackBucket returns the real S3 adapter against a fresh
 // versioned LocalStack bucket, skipping when LocalStack is not
 // reachable (CI provides it as a service container; locally, start
-// it or set SLUICE_LOCALSTACK_ENDPOINT).
+// it or set SLUICE_S3_ENDPOINT). SLUICE_S3_ENDPOINT wins over the
+// legacy SLUICE_LOCALSTACK_ENDPOINT so the same suite runs against
+// any S3-compatible backend (e.g. Garage, degraded profile).
 func localstackBucket(t *testing.T) Bucket {
 	t.Helper()
 
-	endpoint := os.Getenv("SLUICE_LOCALSTACK_ENDPOINT")
+	endpoint := os.Getenv("SLUICE_S3_ENDPOINT")
+	if endpoint == "" {
+		endpoint = os.Getenv("SLUICE_LOCALSTACK_ENDPOINT")
+	}
 	if endpoint == "" {
 		endpoint = "http://localhost:4566"
 	}
@@ -42,13 +47,13 @@ func localstackBucket(t *testing.T) Bucket {
 	dialer := net.Dialer{Timeout: 2 * time.Second}
 	conn, err := dialer.DialContext(ctx, "tcp", u.Host)
 	if err != nil {
-		// Locally an absent LocalStack is a skip; in CI the service
+		// Locally an absent backend is a skip; in CI the service
 		// container is supposed to be there, so a silent skip would
 		// turn the job into a green no-op.
 		if os.Getenv("CI") != "" {
-			t.Fatalf("LocalStack not reachable at %s in CI: %v", endpoint, err)
+			t.Fatalf("S3 backend not reachable at %s in CI: %v", endpoint, err)
 		}
-		t.Skipf("LocalStack not reachable at %s — start it or set SLUICE_LOCALSTACK_ENDPOINT: %v", endpoint, err)
+		t.Skipf("S3 backend not reachable at %s — start it or set SLUICE_S3_ENDPOINT: %v", endpoint, err)
 	}
 	_ = conn.Close()
 
