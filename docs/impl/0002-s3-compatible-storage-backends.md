@@ -194,7 +194,10 @@ Prove the whole chain and hand operators the runbook.
       skip cleanly without backend env).
 - [x] E2E init oracle green against the Garage serving origin (proven 2026-09-16
       per `docs/runbooks/garage-mirror-e2e.md`).
-- [x] Coverage floor holds (`just coverage-gate`); `just ci` green.
+- [x] Coverage floor holds (`just coverage-gate`).
+- [ ] `just ci` green — blocked: local `license-check` fails environmentally
+      (go-licenses vs Go 1.26 stdlib; fails identically on clean `main`, CI is
+      green). Everything else in `just ci` passes locally.
 - [ ] Scope holds: every leg runs without an AWS sandbox or VPCE (plan suites,
       LocalStack, Garage); AWS live evaluation stays deferred.
 
