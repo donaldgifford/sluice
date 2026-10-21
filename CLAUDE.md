@@ -68,7 +68,7 @@ The load-bearing targets:
 
 ## Go-specific conventions
 
-- **`go.mod` go directive matches `mise.toml`** (currently `go 1.26.5`). Bump
+- **`go.mod` go directive matches `mise.toml`** (currently `go 1.26.10`). Bump
   both together — Renovate handles both, but keep them in one commit.
 - **No `vendor/`**. Modules are resolved at build time.
 - **`internal/` is a hard wall** — packages there can't be imported by other

@@ -1,6 +1,6 @@
 module github.com/donaldgifford/sluice
 
-go 1.26.8
+go 1.26.10
 
 require (
 	github.com/ProtonMail/go-crypto v1.4.1
